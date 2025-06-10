@@ -1,0 +1,79 @@
+local function split(inputstr, sep) -- Similar to python's string.split() method.
+    local t={}
+    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
+
+local function FILE_EXISTS(filename) -- Check if a file exists, default directory is your default GT installation
+    local f = io.open(filename, "r")
+    if f ~= nil then
+        f:close()
+        return true
+    elseif f == nil then
+        return false
+    end
+end
+
+local function FILE_WRITE(filename, data) -- Write data to a file, default directory is your default GT installation
+    local f = io.open(filename, 'w')
+    f:write(data)
+    f:close()
+end
+
+AddCallback("Ecoscan Saver", "OnVarlist", function(var)
+        if var[0] == "OnConsoleMessage" and var[1]:find("Total Items in the economy : ") then
+                for i = 1, 500 do
+                        if FILE_EXISTS("Ecoscan"..i..".txt") then
+
+                        else
+                                fileName = "Ecoscan"..i..".txt"
+                                break
+                        end
+                end
+                
+                textBreak = split(var[1], "\n")
+                
+                itemName = textBreak[1]:sub(39,-3)
+                
+                worldList = split(textBreak[2]:gsub("Found worlds :", ""), ",")
+                
+                playerList = split(textBreak[3]:gsub("Found players :", ""), ",")
+                
+                itemAmount = textBreak[4]:gsub("Total Items in the economy : ", "")
+                
+                newText = "Item Scanned is "..itemName.."\nThe amount in the economy is "..itemAmount.."\nFound Worlds:"
+                
+                for x = 1, #worldList do
+                        local max = 0
+                        local maxIndex = 0
+                        for i = 1, #worldList do
+                                if tonumber(worldList[i]:match("%((%d+)")) > max then
+                                        max = tonumber(worldList[i]:match("%((%d+)"))
+                                        maxIndex = i
+                                end
+                        end
+                        newText = newText..worldList[maxIndex]
+                        table.remove(worldList, maxIndex)
+                end
+                
+                newText = newText.."\n".."Found Players:"
+                
+                for x = 1, #playerList do
+                        local max = 0
+                        local maxIndex = 0
+                        for i = 1, #playerList do
+                                if tonumber(playerList[i]:match("%((%d+)")) > max then
+                                        max = tonumber(playerList[i]:match("%((%d+)"))
+                                        maxIndex = i
+                                end
+                        end
+                        newText = newText..playerList[maxIndex]
+                        table.remove(playerList, maxIndex)
+                end
+                
+                FILE_WRITE(fileName, newText)
+                log("Ecoscan Successfuly Saved As "..fileName)
+        end
+end)

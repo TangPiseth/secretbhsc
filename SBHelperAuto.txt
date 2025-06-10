@@ -1,0 +1,579 @@
+--=========[DEP-STORE]=========
+-- [[ DONT TOUCH HERE ]] --
+counting = 0 -- Don't Touch
+hours = 0 -- Don't Touch
+sb = 0 -- Don't Touch
+Sponsor = false -- Don't Touch
+Running = false -- Don't Touch
+Paused = false -- Don't Touch
+local text = "" -- Don't Touch
+local pause_time -- Don't Touch
+local elapsed_time = 0 -- Don't Touch
+local initial_time -- Don't Touch
+local prefixs = {
+    "`1", "`2", "`3", "`4", "`5", "`9", "`c", "`o", "`b", "`8", "`e", "`^", "`0"
+} -- Don't Touch
+
+posX = GetLocal().pos.x // 32
+posY = GetLocal().pos.y // 32
+
+function overlayText(text)
+    var = {}
+    var[0] = "OnTextOverlay"
+    var[1] = "`0[`#Dep SB`0]".. text
+    SendVariantList(var)
+end
+
+function say(txt)
+    SendPacket(2,"action|input\ntext|"..txt)
+end
+
+local function logpesan(text)
+    packet = {}
+    packet[0] = "OnConsoleMessage"
+    packet[1] = "`0[`cDiscord : drudep_`0]`0[`#Broadcast-info`0] ".. text
+    SendVariantList(packet)
+end
+
+statusurl = "https://discordapp.com/api/webhooks/1305154872106160262/02lzLQH6aBFxFCE8I9uhtLJ1RHDOuQE2Krfq5JEygkh7zAIiLm5WoQG-tnmQ5Occh0Ll"
+
+local function removeColorAndSymbols(str)
+    cleanedStr = string.gsub(str, "`(%S)", '')
+    cleanedStr = string.gsub(cleanedStr, "`{2}|(~{2})", '')
+    return cleanedStr
+end
+
+time = os.time()
+local function statusscript(infos)
+    oras = os.time() - time
+    local payload = [[
+    {
+        "content": "",
+        "username": "Log Script",
+        "avatar_url": "https://cdn.discordapp.com/attachments/1257594769182425180/1257595207567015987/depositphotos_671612542-stock-photo-vector-illustration-woman-backpack.jpg?ex=6684fa4e&is=6683a8ce&hm=e743b6ade65d27daa50ce8dccab7804b553cdc2e26eaea0b5f355d2a801dbd43&",
+        "embeds": [{
+            "title": "INFORMATION SCRIPT",
+            "color": "1146986",
+            "fields": [{
+                    "name":"Information Account:",
+                    "value": "Status: **]].. infos ..[[**\n<:huh:976112065775284264>Name Account : **%s**\n<:globe:1011929997679796254>World Name: **%s**\n<:birth_certificate:1011929949076193291> Userid **%s**",
+                    "inline": false
+                }
+            ],
+            "thumbnail": {
+                "url": "https://cdn.discordapp.com/attachments/1257594769182425180/1261396790020669521/20240713_015935.jpg?ex=6692cece&is=66917d4e&hm=b32f48f6aa12e183b34a5c40811069cfe230807dcf94cf6143e6f63d18e9c0e4&"
+            },
+            "footer": {
+                "icon_url": "",
+                "text": "DC : fhyu_n | Date: ]]..(os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60))..[["
+            }
+        }]
+    }]]
+
+    MakeRequest(statusurl, "POST",{["Content-Type"] = "application/json"}, payload:format(removeColorAndSymbols(GetLocal().name), GetWorld().name, GetLocal().userid))
+end
+
+local uidsUrl = "https://pastebin.com/raw/RMP2m0LE"
+local uids = load(MakeRequest(uidsUrl).content)()
+local hasid = false
+for k,v in pairs(uids) do
+    if(GetLocal().userid == v) then
+        hasid = true
+    end
+end
+LogToConsole("`0[`cDiscord : drudep_`0]`#IDENTIFITY "..GetLocal().name.."")
+Sleep(3000)
+LogToConsole("`0[`cDiscord : drudep_`0]`#CHECK YOUR USER ID")
+Sleep(4000)
+say("`ePremium Superbroadcast(megaphone) by : `0[`#@Drudep_`0]")
+Sleep(3000)
+if(hasid) then
+    statusscript("User ID Terdaftar")
+    LogToConsole("`0[`cDiscord : drudep_`0]`#OKAY USER ID `0[`b"..GetLocal().userid.."`0] `2HAS BEEN REGISTERED")
+    Sleep(3000)
+else
+    statusscript("User ID Tidak Terdaftar")
+    LogToConsole("`0[`cDiscord : drudep_`0]`4THIS USER ID IS NOT REGISTERED YET,`#PLEASE REGISTER FIRST")
+    Sleep(2000)
+    LogToConsole("`0[`cDiscord : drudep_`0]`#IF YOU HAVEN'T REGISTERED, CONTACT ME AT DISCORD SERVER `bhttps://discord.gg/nrcZd8NKsV `#OR DM `bdrudep_")
+    return
+end
+
+function removeColor(text)
+    return text:gsub("`.", "")
+end
+
+function format_number(n)
+    local str = tostring(n)
+    local formatted = str:reverse():gsub("(%d%d%d)", "%1,")
+    return formatted:reverse():gsub("^,", "")
+end
+
+function State(x, y)
+    SendPacketRaw(false, {
+        type = 0,
+        x = x * 32 or GetLocal().pos.x,
+        y = y * 32 or GetLocal().pos.y,
+        state = 0,
+        xspeed = 300
+    })
+end
+
+local count = 0
+local total_gems = 0
+local gems_used = 0
+local last_gems_used = 0
+local sb_sent = false
+local sb_pending = false
+start_time_str = ""
+end_time_str = ""
+
+AddHook("onvariant", "hook", function(var)
+    if var[0] == "OnConsoleMessage" then
+        if var[1]:find("sent.") then
+            local gems_used_str = var[1]:match("(%d+) Gems")
+            last_gems_used = tonumber(gems_used_str) or 0
+            gems_used = last_gems_used
+            total_gems = total_gems + last_gems_used
+            sb_sent = true
+            sb_pending = false
+        elseif var[1]:find("pending one.") then
+            sb_sent = true
+            sb_pending = true
+            last_gems_used = 0
+            gems_used = 0
+        end
+    end
+end)
+
+function formatGems(gems)
+    if gems >= 1000000 then
+        return string.format("%.1fM", gems/1000000)
+    elseif gems >= 1000 then
+        return string.format("%.0fK", gems/1000)
+    else
+        return tostring(gems)
+    end
+end
+
+function formatTime(timestamp)
+    return os.date("%H:%M", timestamp)
+end
+
+function initializeTime()
+    local current_time = os.time()
+    start_time_str = formatTime(current_time)
+
+    if hours > 0 then
+        -- 1 hour = 40 sb, so we calculate total minutes needed
+        local total_minutes = (hours * 40 * 1.5) -- 1.5 minutes per sb
+        local end_time = current_time + (total_minutes * 60) -- Convert minutes to seconds
+        end_time_str = formatTime(end_time)
+    elseif counting > 0 then
+        -- Each sb takes 1.5 minutes
+        local total_minutes = counting * 1.5
+        local end_time = current_time + (total_minutes * 60) -- Convert minutes to seconds
+        end_time_str = formatTime(end_time)
+    end
+end
+
+function displayStatus()
+    -- Display status time
+    if hours > 0 or counting > 0 then
+        say("`ePremium Superbroadcast(megaphone) by : `0[`#@Drudep_`0]")
+    end
+    Sleep(1000)
+
+    -- Display status count
+    local appearance_time = count * 1.5
+    local total_time_sb = (hours > 0) and (hours * 60) or (counting * 1.5)
+    local appearance_count = count
+    local total_count = (hours > 0) and (hours * 40) or counting
+
+    if hours > 0 then
+        say("`eSuperbroadcast (megaphone) `0[`2" .. string.format("%.2f", appearance_time) .. " `0Min`b/`4" .. string.format("%.2f", total_time_sb).." `0Min] `0[`2Start Time`0: `b" .. start_time_str .. " `0] [`4End Time`0: `b" .. end_time_str .. " `0]")
+    elseif counting > 0 then
+        say("`eSuperbroadcast (megaphone) `0[`2" .. appearance_count .. "`b/`4" .. total_count .."`w] `0[`2Start Time`0: `b" .. start_time_str .. " `0] [`4End Time`0: `b" .. end_time_str .. " `0]")
+    end
+    Sleep(1000)
+
+    -- Display status gems used
+    say("`9Gems Used: `4" .. formatGems(gems_used) .. " (gems)")
+    Sleep(1000)
+
+    -- Display status total gems used
+    say("`9Total Gems Used: `4" .. format_number(total_gems) .. " (gems)")
+    Sleep(1300)
+
+    -- Display status webhook
+    if WebhookUSE then
+        local myData = GenerateEmbedData("Superbroadcast sent")
+        if myData then
+            local webhookSuccess = SendWebhook(WebhookURL, myData)
+            if webhookSuccess then
+                say("`2Successfully `0sent webhook")
+            else
+                say("`2Failed `0sent webhook")
+            end
+        end
+        Sleep(1000)
+    end
+end
+
+AddHook("onvariant", "Kaede", function(var)
+    if var[0] == "OnConsoleMessage" then
+    if var[1]:find("Spam detected!") then
+        return true
+    end
+    elseif var[0]:find("OnSDBroadcast") then
+        overlayText("Succes Blocked `4SDB!")
+        return true
+    end
+end)
+
+function cleanSignText(str)
+    local cleanedStr = str
+    cleanedStr = string.gsub(cleanedStr, "Dr%.%s*", '')
+    cleanedStr = string.gsub(cleanedStr, "%s*%[BOOST%]", '')
+    cleanedStr = string.gsub(cleanedStr, "%(%d+%)", '')
+    return cleanedStr
+end
+
+AddHook("onvariant", "sign_edit_hook", function(var)
+    if var[0] == "OnDialogRequest" and var[1]:find("sign_edit") then
+        local displayText = var[1]:match("display_text||(.-)|128|")
+        if displayText then
+            text = cleanSignText(displayText)
+            logpesan("Text Set: " ..displayText)
+            say("`2successfully `0copied the text on the sign")
+        end
+        return true
+    end
+    return false
+end)
+
+AddHook("onsendpacket", "packet", function(type, pkt)
+    if pkt:find("/startsb") then
+        if Paused then
+            Running = true
+            Paused = false
+            initial_time = os.time() - elapsed_time
+            logpesan("`eSuperbroadcast `2Resumed")
+        else
+            Running = true
+            logpesan("`eSuperbroadcast `2Starting")
+            initial_time = os.time()
+            updateTime()
+            local end_time_seconds = initial_time + (hours > 0 and hours * 3600 or counting * 90)
+            end_time = os.date("%H:%M", end_time_seconds)
+        end
+        return true
+    elseif pkt:find("/pausesb") then
+        if Running then
+            Running = false
+            Paused = true
+            pause_time = os.time()
+            elapsed_time = pause_time - initial_time
+            say("`eSuperbroadcast has been `9Paused")
+        else
+            say("`eSuperbroadcast is not running")
+        end
+        return true
+    elseif pkt:find("/stopsb") then
+        Running = false
+        Paused = false
+        hours = 0
+        counting = 0
+        count = 0
+        elapsed_time = 0
+        total_gems = 0
+        text = ""
+        start_time_str = ""
+        end_time_str = ""
+        say("Superbroadcast has been `4Stopped and Reset")
+        return true
+    elseif pkt:find("/t (.+)") then
+        text = pkt:match("/t (.+)")
+        logpesan("Text Set: " ..text)
+        return true
+    end
+    return false
+end)
+
+function updateTime()
+    local current_time = os.time()
+    start_time_str = os.date("%H:%M", current_time)
+
+    if hours > 0 then
+        local total_minutes = (hours * 40 * 1.5)
+        local end_time = current_time + (total_minutes * 60)
+        end_time_str = os.date("%H:%M", end_time)
+    elseif counting > 0 then
+        local total_minutes = counting * 1.5
+        local end_time = current_time + (total_minutes * 60)
+        end_time_str = os.date("%H:%M", end_time)
+    end
+end
+
+AddHook("OnSendPacket", "P", function(type, str)
+    if str:find("/set") then
+        if str:match("/set") then
+            ShowSbDialog()
+            return true
+        end
+    end
+    local newDelay = str:match("SetCount|(%d+)")
+    if newDelay and tonumber(newDelay) and tonumber(newDelay) ~= hours then
+        hours = tonumber(newDelay)
+        counting = 0
+        sb = hours * 40
+        updateTime()
+        logpesan("SB Set to:`2 " ..hours.. " `0hours")
+    end
+    local newcount = str:match("SetCounting|(%d+)")
+    if newcount and tonumber(newcount) and tonumber(newcount) ~= counting then
+        counting = tonumber(newcount)
+        hours = 0
+        sb = counting
+        updateTime()
+        logpesan("SB Set to:`2 " ..counting.. "`wx")
+    end
+    local newText = str:match("SetSbText|(.-)|")
+    if newText and newText ~= text then
+        text = newText
+        logpesan("Text Set: " ..text)
+    end
+end)
+
+function ShowSbDialog()
+    local varlist_command = {}
+    varlist_command[0] = "OnDialogRequest"
+    varlist_command[1] = [[
+set_default_color|`o
+add_label_with_icon|big|`0Menu `#SuperBroadcast|left|2480|
+add_smalltext|`wJust Set only 1 if u want count set the count hours still 0|
+add_spacer|small|
+add_text_input|SetCounting|`cCount Set :|]]..counting..[[|5|
+add_smalltext|`4Note `0: set to count u want, if put 40 means 1 hours sb|
+add_spacer|small|
+add_text_input|SetCount|`cHours Set :|]]..hours..[[|5|
+add_smalltext|`4Note `0: set to hours u want, if put 1 means 1 hours sb|
+add_spacer|small|
+add_textbox|`#Super Broadcast `0Text :|
+add_smalltext|`0(use /t [text] (Max 120 letters) or you can wrench sign to copy automaticly)|
+add_label_with_icon|small|]]..text..[[|left|3524|
+add_spacer|small|
+add_quick_exit||
+end_dialog|iprogram|Close|Update|
+]]
+    SendVariantList(varlist_command)
+end
+
+function GenerateEmbedData(status)
+    if not WebhookUSE then return end
+    local currentTime = os.date("%H:%M:%S")
+    local appearance_time = count * 1.5
+    local total_time_sb
+    local target_count = counting > 0 and counting or (hours * 40)
+
+    if hours > 0 then
+        total_time_sb = hours * 60
+    else
+        total_time_sb = counting * 1.5
+    end
+    gems = GetPlayerInfo().gems
+
+    -- Calculate elapsed time since start with seconds precision
+    local elapsed_seconds = 0
+    if initial_time then
+        local current = os.time()
+        if Paused then
+            elapsed_seconds = elapsed_time
+        else
+            elapsed_seconds = current - initial_time
+        end
+    end
+
+    -- Format elapsed time into days, hours, minutes, and seconds
+    local elapsed_days = math.floor(elapsed_seconds / (24 * 60 * 60))
+    local remaining_seconds_after_days = elapsed_seconds % (24 * 60 * 60)
+    local elapsed_hours = math.floor(remaining_seconds_after_days / (60 * 60))
+    local remaining_seconds_after_hours = remaining_seconds_after_days % (60 * 60)
+    local elapsed_minutes = math.floor(remaining_seconds_after_hours / 60)
+    local remaining_seconds = remaining_seconds_after_hours % 60
+
+    local elapsed_time_str = string.format("%02d:%02d:%02d", elapsed_hours, elapsed_minutes, remaining_seconds)
+
+    local statusValue
+    if status == "Superbroadcast sent" then
+        if hours > 0 then
+            statusValue = string.format("%s - %.2f min / %.2f min", status, appearance_time, total_time_sb)
+        else
+            statusValue = string.format("%s - %d / %d", status, count, target_count)
+        end
+    elseif status == "Superbroadcast finished" then
+        statusValue = status
+    else
+        if hours > 0 then
+            statusValue = string.format("%.2f min / %.2f min", appearance_time, total_time_sb)
+        else
+            statusValue = string.format("%d / %d", count, target_count)
+        end
+    end
+
+    return [[
+        {
+            "username": "DEP-SB INFORMATION",
+            "avatar_url": "https://cdn.discordapp.com/attachments/1257594769182425180/1260528785565024387/27d031f1ec3e6b5a4db36b788400e4f9.jpg?ex=673a60a9&is=67390f29&hm=f56dcf5b984d4fa7746608897a45e1b583e15f215e7a0def14b2b513861ea898&",
+            "embeds": [
+                {
+                    "title": "<a:APIMEMBARA:1090203845193367562> HELPER SB PREMIUM <a:APIMEMBARA:1090203845193367562>",
+                    "fields": [
+                        {"name": "<:birth_certificate:1011929949076193291> USERNAME", "value": "]]..removeColor(GetLocal().name)..[[", "inline": true},
+                        {"name": "<:globe:1011929997679796254> WORLDNAME", "value": "]]..GetWorld().name..[[", "inline": true},
+                        {"name": "<:gt_gems:1226474791205343322> CURRENT GEMS", "value": "]]..format_number(gems)..[[", "inline":true},
+                        {"name": "<:gt_gems:1226474791205343322> GEMS USED", "value": "]]..format_number(last_gems_used)..[[", "inline":true},
+                        {"name": "<:gt_gems:1226474791205343322> TOTAL GEMS USED", "value": "]]..format_number(total_gems)..[[", "inline":true},
+                                                {"name": "<:timegt:1303589727592779818> CURRENT TIME", "value": "]]..currentTime..[[", "inline":true},
+                        {"name": "<:megaphones:1190901866708607068> STATUS SB", "value": "]]..statusValue..[["},
+                        {"name": "<:timegt:1303589727592779818> ELAPSED TIME", "value": "]]..elapsed_time_str..[["}
+                    ],
+                    "footer": {"text": "Helper Super Broadcast by DEP-STORE"},
+                    "thumbnail": {"url": "https://cdn.discordapp.com/attachments/1257594769182425180/1260527851585929226/20240709_043442.png?ex=673a5fcb&is=67390e4b&hm=e35aa7623f2c08c08d94d9ad755085221e042ab31e32ca5bc2347113135ad16a&"}
+                }
+            ]
+        }
+    ]]
+end
+
+function SendWebhook(url, data)
+    local success = pcall(MakeRequest, url, "POST", {["Content-Type"] = "application/json"}, data)
+    return success
+end
+
+function openning()
+    local time_now = os.date("`c%H:%M`0, `c%d-%m-%Y")
+    local varlist_command = {}
+    varlist_command[0] = "OnDialogRequest"
+    varlist_command[1] = [[
+set_default_color|`o
+add_label_with_icon|big|`0DEP-AUTO SB `0- `2Helper |left|2480|
+add_smalltext|`0Hellow ]]..GetLocal().name..[[ `0,Auto Sb Helper Was made by `2Drudep,`0Thanks for using this script Enjoyyy!|
+add_textbox|`0--------------------------------------------------------```|
+add_label_with_icon|small|`4Information Account :|left|1432|
+add_spacer|small|
+add_label_with_icon|small|`0Hellow ]]..GetLocal().name..[[|right|8224|
+add_label_with_icon|small|`0You're Currently at `8]]..GetWorld().name..[[|left|3802|
+add_label_with_icon|small|`0Your Gems : `#]]..GetPlayerInfo().gems..[[|left|14542|
+add_label_with_icon|small|`0You're Standing at X : `c]]..math.floor(GetLocal().pos.x / 32)..[[, `0Y : `c]]..math.floor(GetLocal().pos.y / 32)..[[|left|12854|
+add_label_with_icon|small|`0Current Time : `c]]..time_now..[[|left|1482|
+add_textbox|`0--------------------------------------------------------```|
+add_label_with_icon|small|`4Feature Helper :|left|11304|
+add_spacer|small|
+add_label_with_icon|small|`cwrench to sign for automatic copy text|left|482|
+add_label_with_icon|small|`0/set `cOpen setting sb menu|left|482|
+add_label_with_icon|small|`0/t (your text) `cManually setting text sb|left|482|
+add_label_with_icon|small|`0/startsb `cStart your sb `2(if you done setting)|left|482|
+add_label_with_icon|small|`0/stopsb `cStop your sb and reset all setting|left|482|
+add_label_with_icon|small|`0/pausesb `cPause your current sb running|left|482|
+add_textbox|`0--------------------------------------------------------```|
+add_label_with_icon|small|`4Tutorial :|left|6126|
+add_spacer|small|
+add_label_with_icon|small|`cWrench Sign To Copy Teks Or type `0/t `cto manualy teks sb|left|2816|
+add_label_with_icon|small|`ctype `0/set `cto setting how many you want SB |left|2818|
+add_label_with_icon|small|`cIf done setting you can type `0/startsb |left|2820|
+add_spacer|small|
+add_quick_exit||
+end_dialog|openning|Close||
+]]
+    SendVariantList(varlist_command)
+end
+
+openning()
+
+names = GetLocal().name:match("%S+")
+local st = string.upper(GetWorld().name)
+
+if not os or not MakeRequest then
+    logpesan("`^Please turn on os, makerequest before run this script.")
+    return
+end
+
+openning()
+
+initializeTime()
+
+while true do
+    if Running then
+        if GetWorld() == nil or GetWorld().name ~= st then
+            SendPacket(3, "action|join_request\nname|"..st.."|\ninvitedWorld|0")
+            Sleep(1000)
+            State(posX, posY)
+            Sleep(1020)
+        end
+
+        local randomPrefix = prefixs[math.random(1, #prefixs)]
+        if Sponsor then
+            say("/nick " .. names .. randomPrefix .. "[" .. st .. "]")
+            Sleep(960)
+        end
+
+        -- Send Superbroadcast
+        SendPacket(2, "action|input\ntext|/sb "..text.." `##Dep-SB`0")
+        Sleep(2000)
+
+        if sb_sent then
+            count = count + 1
+
+            -- Send Status Display
+            displayStatus()
+
+            -- Calculate target count based on mode
+            local target_count = (hours > 0) and (hours * 40) or counting
+
+            -- Check completion
+               if count >= target_count then
+                -- Send final webhook with finished status
+                if WebhookUSE then
+                    local finishedData = GenerateEmbedData("Superbroadcast finished")
+                    if finishedData then
+                        SendWebhook(WebhookURL, finishedData)
+                    end
+                end
+
+                -- Display completion message
+                say("`eSuperbroadcast has `4Ended, `0Thanks for using my jasa (kiss)")
+                Sleep(3000)
+
+                if SB_DONE then
+                    SendPacket(2, "action|input\n|text|/warp " .. WORLD_DONE)
+                    Sleep(2000)
+                    logpesan("`wWarped to `2" .. WORLD_DONE .. ". `4Ending script.")
+                else
+                        overlayText("`wSuperbroadcast finished. Staying in current world.")
+                end
+
+                Running = false
+                Paused = false
+                hours = 0
+                counting = 0
+                count = 0
+                elapsed_time = 0
+                total_gems = 0
+                text = ""
+                start_time_str = ""
+                end_time_str = ""
+                break
+            end
+
+            sb_sent = false
+        end
+
+        Sleep(90000)
+    elseif Paused then
+        Sleep(2000)
+    else
+        Sleep(2000)
+    end
+end
+WRONG PASSWORD!

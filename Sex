@@ -1,0 +1,76 @@
+local netid
+local text = {
+    "fuck, stretch me open",  
+    "mmm, take me all the way",  
+    "you're so deep inside me",  
+    "fill me up completely",  
+    "i'm dripping all over you",  
+    "pound me till i can't walk",  
+    "make me scream your name",  
+    "use me like your personal toy",  
+    "fuck me like you own me",  
+    "mmm, your hands feel so good",  
+    "tie me up and do whatever you want",  
+    "choke me while you fuck me",  
+    "make me beg for it",  
+    "don't stop till i can't breathe",  
+    "ruin me completely",  
+    "i want you to break me",  
+    "make my legs shake",  
+    "wreck me like no one else",  
+    "i'm soaking wet for you",  
+    "give me every inch",  
+    "i want you so deep in me",  
+    "i can feel you throbbing inside",  
+    "you taste so fucking good",  
+    "i need you right now",  
+    "i'm about to explode",  
+    "fuck, you're hitting all the right spots",  
+    "keep going, don't stop till i collapse"  
+}
+
+function a(type, packet)
+    if packet:find("action|wrench") then
+        netid = packet:match("action|wrench\n|netid|(%d+)")
+        return true
+    end
+end
+
+RunThread(function()
+    while true do
+        if netid then
+            for _, player in pairs(GetPlayers()) do
+                if player.netid == tonumber(netid) then
+                    if player.facing_left then
+                        GetLocal().facing_left = true
+                        GetLocal().pos_x = player.pos_x + 20
+                    else
+                        GetLocal().facing_left = false
+                        GetLocal().pos_x = player.pos_x - 20
+                    end
+                    GetLocal().pos_y = player.pos_y
+                end
+            end
+        end
+    end
+end)
+
+
+RunThread(function()
+    while true do
+        if netid then
+            local rndmtext = text[math.random(#text)]
+            SendPacket(2, "action|input\n|text|" .. rndmtext)
+            Sleep(950)
+            SendPacket(2, "action|input\n|text|/cheer")
+            Sleep(950)
+            SendPacket(2, "action|input\n|text|/love")
+            Sleep(950)
+        end
+        Sleep(50)
+    end
+end)
+
+AddCallback("???", "OnPacket", a)
+
+

@@ -1,0 +1,70 @@
+local DBoxPos = {23,22} -- Donation Box Position
+local DiscordID = "1001305405160435732" -- Your DiscordID here
+local WebhookURL = "https://discord.com/api/webhooks/1292042500675997753/6gbEs7BTEk5nXnjUkItO5L7sRoa-SFPnEPb2p9WM5WoUCAQbldV5xfRFB4gMG-xmNBgZ" -- Your Webhook here
+
+local function Wrench(x, y)
+    local Player = GetLocal()
+    local WrenchPacket = {
+      type = 3,
+      int_data = 32,
+      flags = 16,
+      pos_x = Player.pos_x,
+      pos_y = Player.pos_y,
+      int_x = x,
+      int_y = y,
+    }
+    SendPacketRaw(WrenchPacket)
+end
+
+function MainHandler(varlist, packet)
+    if varlist[0] == "OnTalkBubble" then
+        local Message = varlist[2]
+        if Message:find("places") and Message:find("into the Donation Box") then
+            if varlist[4] == 1 then
+                Wrench(DBoxPos[1], DBoxPos[2])
+            else
+					Message = Message:gsub("`.", "")
+					local Payload = [[{
+					    "content": "<@]] .. DiscordID .. [[> Fake Deposit Alert",
+					    "embeds": [
+					        {
+					            "title": "💸 Donation Logs 💸",
+					            "description": "Text: ]] .. Message .. [["
+					        }
+					    ],
+					    "attachments": []
+					}]]
+
+                SendWebhook(WebhookURL, Payload)
+            end
+        end
+    end
+
+    if varlist[0] == "OnDialogRequest" then
+        local Dialog = varlist[1]:gsub("`.","")
+        if Dialog:find("Donation Box") then
+            RunThread(function()
+				for ItemName, Amount, PlayerName in Dialog:gmatch("([%w%s]+) %((%d+)%) from @?([%w%s]+)") do
+					PlayerName = PlayerName:gsub("`.", "")
+                    local DateTime = os.date("%A, %Y/%m/%d at %I:%M %p")
+					local WebhookPayload = [[{
+					    "embeds": [
+					        {
+					            "title": "💸 Donation Logs 💸",
+					            "description": "⁃ [:person_bald:] GrowID: ]] .. PlayerName .. [[\n⁃ [:lock:] Amount: ]] .. Amount .. [[\n⁃ [:gift:] Item: ]] .. ItemName .. [[\n⁃ [:earth_asia:] World: ]] .. GetLocal().world .. [["
+					        }
+					    ],
+					    "attachments": []
+					}]]
+
+                    SendWebhook(WebhookURL, WebhookPayload)
+                end
+            end)
+            SendPacket(2, "action|dialog_return\ndialog_name|donate_edit\nx|" .. DBoxPos[1] .. "|\ny|" .. DBoxPos[2] .. "|\nbuttonClicked|withdrawall")
+            return true
+        end
+    end
+end
+
+AddCallback("Deposit Handler", "OnVarlist", MainHandler)
+

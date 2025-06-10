@@ -1,0 +1,788 @@
+--=========[DEP-STORE]=========
+oldMagplantX = Magplant_X -- [DO NOT TOUCH ANYTHING] --
+oldMagplantY = Magplant_Y -- [DO NOT TOUCH ANYTHING] --
+magplantCount = 1 -- [DO NOT TOUCH ANYTHING] --
+ANTILAG = 1 -- [DONT TOUCHING ANYTHING]
+buyLock = false -- [DO NOT TOUCH ANYTHING] --
+autoDLock = false -- [DO NOT TOUCH ANYTHING] --
+changeRemote = false -- [DO NOT TOUCH ANYTHING] --
+consumeArroz = false -- [DO NOT TOUCH ANYTHING] --
+consumeClover = false -- [DO NOT TOUCH ANYTHING] --
+currentGem = GetPlayerInfo().gems -- [DO NOT TOUCH ANYTHING] --\
+player = GetLocal().name -- [DO NOT TOUCH ANYTHING] --
+currentWorld = GetWorld().name -- [DO NOT TOUCH ANYTHING] --
+worldName = GetWorld().name
+CHEAT_AUTOFARM = true -- true or false (Usage; It Allows you to select a Farming mode between Horizontal [true] and Vertical [false])
+STAR_SMT = false
+start = os.time()
+jumlahbgems = 0
+statusurl ="https://discord.com/api/webhooks/1264577209570557982/ozYMmi71ychxBzq-uYZlReeIpzbh3uja_TN6Yx3MFTyQt-G2pbN89bAuZanaUlc9Od6k" -- [DO NOT TOUCH ANYTHING] --
+
+ChangeValue("[C] Modfly", false)
+
+AddHook("onvariant", "mommy", function(var)
+    if var[0] == "OnSDBroadcast" then
+        return true
+    end
+
+    if var[0] == "OnTextOverlay" and var[1]:find("You don't have enough of those") then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("add_player_info") then
+        if var[1]:find("|528|") then
+            consumeClover = true
+        else
+            consumeClover = false
+        end
+
+        if var[1]:find("|4604|") then
+            consumeArroz = true
+        else
+            consumeArroz = false
+        end
+
+        if var[1]:find("|290|") then
+            ghostState = true
+        else
+            ghostState = false
+        end
+
+        return true
+    end
+
+
+    if var[0] == "OnDialogRequest" and var[1]:find("Telephone") then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("Blue Gem Lock") then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("The BGL Bank") then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("Diamond Lock") then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("MAGPLANT 5000") then
+        if var[1]:find("Stock: `4EMPTY!") then
+            changeRemote = true
+            buyNow = false
+        end
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("Telephone") then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("Blue Gem Lock") then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("The BGL Bank") then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("Diamond Lock") then
+        return true
+    end
+
+    if var[0] == "OnConsoleMessage" and var[1]:find("Disconnected?! Will attempt to reconnect...") then
+        return true
+    end
+
+    if var[0] == "OnConsoleMessage" and var[1]:find("Where would you like to go?") then
+        return true
+    end
+
+    if var[0] == "OnConsoleMessage" and var[1]:find("Applying cheats...") then
+        return true
+    end
+
+    if var[0] == "OnConsoleMessage" and var[1]:find("Cheat Active") then
+        return true
+    end
+    if var[0] == "OnConsoleMessage" and var[1]:find("Whoa, calm down toggling cheats on/off... Try again in a second!") then
+        return true
+    end
+    if var[0] == "OnConsoleMessage" and var[1]:find("You earned `$(%d+)`` in Tax Credits! You have `$(%d+) Tax Credits`` in total now.") then
+        return true
+    end
+    if var[0] == "OnTalkBubble" and var[2]:match("Collected") then
+        if removeCollected then
+            return true
+        end
+    end
+    if var[0] == "OnTalkBubble" and var[2]:find("The MAGPLANT 5000 is empty.") then
+        changeRemote = true
+        buyNow = false
+        return true
+    end
+    if var[0] == "OnDialogRequest" and var[1]:find("`bThe Black Backpack") then
+        jumlahbgems = var[1]:match("You have (%d+)")
+        return true
+    end
+    return false
+end)
+
+if not CHEAT_AUTOFARM and removeAnimation then
+    removeAnimation = false
+end
+
+local function warnText(text)
+    text = text
+    packet = {}
+    packet[0] = "OnAddNotification"
+    packet[1] = "interface/atomic_button.rttex"
+    packet[2] = text
+    packet[3] = "audio/hub_open.wav"
+    packet[4] = 0
+    SendVariantList(packet)
+    return true
+end
+
+local function scanObject(id)
+    local count = 0
+    local oldCount = 0
+        if GetWorld() == nil then
+                return oldCount
+        else
+                for _, object in pairs(GetObjectList()) do
+                        if object.id == id then
+                                count = count + object.amount
+                oldCount = count
+                        end
+                end
+        end
+
+    return count
+end
+
+AddHook("onprocesstankupdatepacket", "pussy", function(packet)
+    if packet.type == 3 or packet.type == 14 or packet.type == 17 then
+        if removeAnimation then
+            return true
+        end
+    end
+end)
+
+local function FormatNumber(num)
+    num = math.floor(num + 0.5)
+
+    local formatted = tostring(num)
+    local k = 3
+    while k < #formatted do
+        formatted = formatted:sub(1, #formatted - k) .. "," .. formatted:sub(#formatted - k + 1)
+        k = k + 4
+    end
+
+    return formatted
+end
+
+local function findItem(id)
+    count = 0
+    for _, inv in pairs(GetInventory()) do
+        if inv.id == id then
+            count = count + inv.amount
+        end
+    end
+    return count
+end
+
+local function removeColorAndSymbols(str)
+    cleanedStr = string.gsub(str, "`(%S)", '')
+    cleanedStr = string.gsub(cleanedStr, "`{2}|(~{2})", '')
+    return cleanedStr
+end
+
+if GetWorld() == nil then
+    username = removeColorAndSymbols(player)
+else
+    username = removeColorAndSymbols(GetLocal().name)
+end
+
+time = os.time()
+local function playerHook(info)
+    if Use_Webhook then
+        oras = os.time() - time
+        local script = [[
+            $webHookUrl = "]].. Webhook_URL ..[["
+            $title = "**<a:APIMEMBARA:1090203845193367562> AUTO PNB PREMIUM V5 BY DEP STORE<a:APIMEMBARA:1090203845193367562> **"
+            $thumbnailObject = @{
+                url = "https://cdn.discordapp.com/attachments/1257594769182425180/1260527851585929226/20240709_043442.png?ex=668fa58b&is=668e540b&hm=79040c0da2594855c246e37a6174b6d8a8595408abedaa870660b565d7c2cc09&"
+            }
+            $footerObject = @{
+                icon_url = ""
+                text = "[DISCORD : drudep_] | Date: ]]..(os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60))..[["
+            }
+
+            $fieldArray = @(
+
+            @{
+                name = "<:megaphones:1190901866708607068> Status"
+                value = "**]].. info ..[[**"
+                inline = "true"
+            }
+
+            @{
+                name = "<:birth_certificate:1011929949076193291> Account Name"
+                value = "]].. username ..[["
+                inline = "true"
+            }
+
+            @{
+                name = "<:globe:1011929997679796254> World name"
+                value = "]].. currentWorld ..[["
+                inline = "true"
+            }
+
+            @{
+                name = "<:gems100:913481818538393652> Gems"
+                value = "]].. FormatNumber(GetPlayerInfo().gems) ..[["
+                inline = "true"
+            }
+
+            @{
+                name = "<:black_gem:1227301522476634202> Bgems In World "
+                value = "]].. math.floor(scanObject(15062)) ..[["
+                inline = "true"
+            }
+
+            @{
+                name = "<:four_leaf_clover:1178876649090076774> Clover Stock"
+                value = "]].. math.floor(findItem(528)) ..[["
+                inline = "true"
+            }
+
+            @{
+                name = "<:taco:1178877190507614248> Arroz Stock"
+                value = "]].. math.floor(findItem(4604)) ..[["
+                inline = "true"
+            }
+
+            @{
+                name = "<:remote:1190900595557683210> Magplant Pos"
+                value = "(]].. Magplant_X ..[[**, **]].. Magplant_Y ..[[)"
+                inline = "true"
+            }
+
+            @{
+                name = "Application"
+                value = "Bothax PC"
+                inline = "true"
+            }
+
+            @{
+                name = "**===================================================**"
+                value = "<:gems:1093032105774162021>Getting **]].. FormatNumber(GetPlayerInfo().gems - currentGem) ..[[** Gems Form The Last **]].. WEBHOOK_DELAY ..[[** Minutes"
+                inline = "false"
+            }
+
+            @{
+                name = "**===================================================**"
+                value = ""
+                inline = "false"
+            }
+
+            @{
+                name = "Total Locks"
+                value = ""
+                inline = "false"
+            }
+
+            @{
+                name = "<:world_lock:1017035174086705208>World Lock"
+                value = "]].. math.floor(findItem(242)) ..[["
+                inline = "false"
+            }
+
+            @{
+                name = "<:DIAMONDLOCK:1055880432840872036>Diamond Lock"
+                value = "]].. math.floor(findItem(1796)) ..[["
+                inline = "false"
+            }
+
+            @{
+                name = "<:BGL:1084469512600027189> Blue Gem Lock"
+                value = "]].. math.floor(findItem(7188)) ..[["
+                inline = "false"
+            }
+
+            @{
+                name = "<:ireng:1174756771311665212> Black Gem Lock"
+                value = "]].. math.floor(findItem(11550)) ..[["
+                inline = "false"
+            }
+
+            @{
+                name = "<:growtopia_clock:1011929976628596746> PNB UpTime"
+                value = "]].. math.floor(oras/86400) ..[[ Days ]].. math.floor(oras%86400/3600) ..[[ Hours ]].. math.floor(oras%86400%3600/60) ..[[ Minutes ]].. math.floor(oras%3600%60) ..[[ Seconds"
+                inline = "false"
+            }
+          )
+          $embedObject = @{
+          title = $title
+          description = $desc
+          footer = $footerObject
+          thumbnail = $thumbnailObject
+          color = "]] ..math.random(1000000, 9999999).. [["
+
+          fields = $fieldArray
+      }
+      $embedArray = @($embedObject)
+      $payload = @{
+      avatar_url = "https://cdn.discordapp.com/attachments/1257594769182425180/1257602017136873522/892d01180a8a629f8234b1a3dc080b8c.jpg?ex=668500a6&is=6683af26&hm=fa162045e09192e79e39ee13fd9234102046393b7c9c7be542ce6d3a7ffadb0c&"
+      username = "INFORMASI WEBHOOk"
+      embeds = $embedArray
+      }
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Invoke-RestMethod -Uri $webHookUrl -Body ($payload | ConvertTo-Json -Depth 4) -Method Post -ContentType 'application/json'
+      ]]
+      local pipe = io.popen("powershell -command -", "w")
+      pipe:write(script)
+      pipe:close()
+      currentGem = GetPlayerInfo().gems
+    end
+end
+
+local function statusscript(infos)
+    oras = os.time() - time
+    local payload = [[
+    {
+        "content": "",
+        "username": "Log Script",
+        "avatar_url": "https://cdn.discordapp.com/attachments/1257594769182425180/1257595207567015987/depositphotos_671612542-stock-photo-vector-illustration-woman-backpack.jpg?ex=6684fa4e&is=6683a8ce&hm=e743b6ade65d27daa50ce8dccab7804b553cdc2e26eaea0b5f355d2a801dbd43&",
+        "embeds": [{
+            "title": "INFORMATION SCRIPT",
+            "color": "1146986",
+            "fields": [{
+                    "name":"Information Account:",
+                    "value": "Status: **]].. infos ..[[**\n<:huh:976112065775284264>Name Account : **%s**\n<:globe:1011929997679796254>World Name: **%s**\n<:birth_certificate:1011929949076193291> Userid **%s**",
+                    "inline": false
+                }
+            ],
+            "thumbnail": {
+                "url": "https://cdn.discordapp.com/attachments/1257594769182425180/1261396790020669521/20240713_015935.jpg?ex=6692cece&is=66917d4e&hm=b32f48f6aa12e183b34a5c40811069cfe230807dcf94cf6143e6f63d18e9c0e4&"
+            },
+            "footer": {
+                "icon_url": "",
+                "text": "DC : fhyu_n | Date: ]]..(os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60))..[["
+            }
+        }]
+    }]]
+
+    MakeRequest(statusurl, "POST",{["Content-Type"] = "application/json"}, payload:format(removeColorAndSymbols(GetLocal().name), GetWorld().name, GetLocal().userid))
+end
+
+function say(txt)
+    SendPacket(2,"action|input\ntext|"..txt)
+end
+
+local function logpesan(text)
+    packet = {}
+    packet[0] = "OnConsoleMessage"
+    packet[1] = "`0[`cDISCORD : drudep_`0] ".. text
+    SendVariantList(packet)
+end
+
+local uidsUrl = "https://pastebin.com/raw/aiAWkDYg"
+local uids = load(MakeRequest(uidsUrl).content)()
+local hasid = false
+for k,v in pairs(uids) do
+    if(GetLocal().userid == v) then
+        hasid = true
+    end
+end
+logpesan("`#IDENTIFITY "..GetLocal().name.."")
+Sleep(3000)
+logpesan("`#CHECK YOUR USER ID")
+Sleep(7000)
+say("`#SCRIPT AUTO PNB PREMIUM BY drudep_")
+Sleep(5000)
+if(hasid) then
+    statusscript("User ID Terdaftar")
+    logpesan("`#OKAY USER ID `0[`b"..GetLocal().userid.."`0] `2HAS BEEN REGISTERED")
+    Sleep(3000)
+else
+    statusscript("User ID Tidak Terdaftar")
+    logpesan("`4THIS USER ID IS NOT REGISTERED YET,`#PLEASE REGISTER FIRST")
+    Sleep(2000)
+    logpesan("`#IF YOU HAVEN'T REGISTERED, CONTACT ME AT DISCORD SERVER `bhttps://discord.gg/nrcZd8NKsV `#OR DM `bdrudep_")
+    return
+end
+
+function convert(id)
+    pkt = {}
+    pkt.value = id
+    pkt.type = 10
+    SendPacketRaw(false, pkt)
+end
+
+function split(inputstr, sep)
+    local t = {}
+    for str in string.gmatch(inputstr, "([^".. sep .."]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
+
+local function place(id, x, y)
+    if GetWorld() == nil then return end
+    pkt = {}
+    pkt.type = 3
+    pkt.value = id
+    pkt.px = math.floor(GetLocal().pos.x / 32 + x)
+    pkt.py = math.floor(GetLocal().pos.y / 32 + y)
+    pkt.x = GetLocal().pos.x
+    pkt.y = GetLocal().pos.y
+    SendPacketRaw(false, pkt)
+end
+
+local function punch(x, y)
+    if GetWorld() == nil then return end
+    pkt = {}
+    pkt.type = 3
+    pkt.value = 18
+    pkt.x = GetLocal().pos.x
+    pkt.y = GetLocal().pos.y
+    pkt.px = math.floor(GetLocal().pos.x / 32 + x)
+    pkt.py = math.floor(GetLocal().pos.y / 32 + y)
+    SendPacketRaw(false, pkt)
+end
+
+local function wrench(x, y, id)
+        if GetWorld() == nil then return end
+        pkt = {}
+        pkt.type = 3
+        pkt.value = id
+        pkt.px = x
+        pkt.py = y
+        pkt.x = GetLocal().pos.x
+        pkt.y = GetLocal().pos.y
+        SendPacketRaw(false, pkt)
+end
+
+local function wrenchMe()
+    if GetWorld() == nil then
+        playerHook("Disconnected")
+        Sleep(10000)
+        RequestJoinWorld(worldName)
+        Sleep(1000)
+        playerHook("Reconnected")
+    else
+        if GetWorld() == nil then
+            Sleep(100)
+            return
+        end
+        SendPacket(2, "action|wrench\n|netid|".. GetLocal().netid)
+        Sleep(100)
+    end
+end
+
+local function getRemote()
+    if GetWorld() == nil then return end
+
+        if findItem(5640) < 1 or changeRemote  then
+                FindPath(Magplant_X, Magplant_Y - 1, 80)
+        Sleep(200)
+        wrench(Magplant_X,Magplant_Y,32)
+                Sleep(600)
+                SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|".. Magplant_X .."|\ny|" .. Magplant_Y .. "|\nbuttonClicked|getRemote")
+                Sleep(250)
+        playerHook("Succes Take Remote!")
+        end
+
+        if findItem(5640) >= 1 and changeRemote then
+                changeRemote = false
+        end
+
+    nowBuy = true
+        return findItem(5640) >= 1
+end
+
+local function remoteCheck()
+    if GetWorld() == nil then return end
+
+    if findItem(5640) < 1 then
+        SendPacket(2, "action|dialog_return\ndialog_name|cheats\ncheck_autofarm|0\ncheck_bfg|0\ncheck_ignoref|1\ncheck_lonely".. peopleHide .."\ncheck_ignoreo|".. dropHidden .."\ncheck_gems|".. Drop_Gems)
+        Sleep(200)
+        getRemote()
+    end
+
+    return findItem(5640) >= 1
+end
+
+local function reconnectPlayer()
+    if GetWorld() == nil then
+        playerHook("Disconnected")
+        Sleep(10000)
+        RequestJoinWorld(worldName)
+        Sleep(1000)
+        playerHook("Reconnected")
+    else
+        Sleep(1000)
+        remoteCheck()
+        if findItem(5640) >= 1 or findItem(5640) == 1 then
+            Sleep(1000)
+            if GetLocal().pos.x ~= Pos_Break_X and GetLocal().pos.y ~= Pos_Break_Y then
+                Sleep(100)
+                FindPath(Pos_Break_X, Pos_Break_Y, 100)
+                Sleep(100)
+                wrenchMe()
+                Sleep(100)
+            end
+        end
+    end
+end
+
+local function worldNot()
+    if GetWorld() == nil then
+        playerHook("Disconnected")
+        Sleep(10000)
+        RequestJoinWorld(worldName)
+        Sleep(1000)
+        playerHook("Reconnected")
+    else
+        Sleep(1000)
+        remoteCheck()
+        if findItem(5640) >= 1 or findItem(5640) == 1 then
+            Sleep(1000)
+            if GetLocal().pos.x ~= Pos_Break_X and GetLocal().pos.y ~= Pos_Break_Y then
+                Sleep(100)
+                FindPath(Pos_Break_X, Pos_Break_Y, 100)
+                Sleep(100)
+                wrenchMe()
+                Sleep(100)
+            end
+        end
+    end
+end
+
+while true do
+    if GetWorld() == nil then
+        playerHook("Disconnected")
+        Sleep(10000)
+        reconnectPlayer(worldName)
+    end
+
+    if changeRemote then
+        for i = 1, 1 do
+            if Magplant_X and Magplant_Y and GetTile(Magplant_X + 1, Magplant_Y).fg == 5638 then
+                Magplant_X = Magplant_X + 1
+                magplantCount = magplantCount + 1
+                warnText("`wMagplant `2#".. magplantCount - 1 .." `wis empty. Switching to Magplant `2#".. magplantCount)
+                playerHook("Magplant #".. magplantCount - 1 .." is empty. Switching to Magplant #".. magplantCount)
+            else
+                warnText("`wMagplant `2#".. magplantCount .." `wis empty. Switching to Magplant `2#1")
+                playerHook("Magplant #".. magplantCount .." is empty. Switching to Magplant #1")
+                magplantCount = 1
+                Magplant_X = oldMagplantX
+            end
+            SendPacket(2, "action|dialog_return\ndialog_name|cheats\ncheck_autofarm|0\ncheck_bfg|0\ncheck_ignoref|1\ncheck_lonely".. peopleHide .."\ncheck_ignoreo|".. dropHidden .."\ncheck_gems|".. Drop_Gems)
+            Sleep(1000)
+        end
+        getRemote()
+        Sleep(1000)
+    end
+
+    getRemote()
+    Sleep(1000)
+    FindPath(Pos_Break_X, Pos_Break_Y, 100)
+    Sleep(1000)
+    playerHook("Started Auto PNB")
+    if CHEAT_AUTOFARM then
+        nowFarm = true
+        while nowFarm do
+            for i = 1, 1 do
+                Sleep(4500)
+                SendPacket(2, "action|dialog_return\ndialog_name|cheats\ncheck_autofarm|1\ncheck_bfg|1\ncheck_lonely|".. peopleHide .."\ncheck_ignoref|".. ANTILAG .."\ncheck_ignoreo|".. dropHidden .."\ncheck_gems|".. Drop_Gems)
+            end
+
+            if os.time() - start >= WEBHOOK_DELAY * 60 then
+                STAR_SMT = true
+                start = os.time()
+                playerHook("farming")
+                Sleep(1000)
+                STAR_SMT = false
+
+                if TakeBgems then
+                    SendPacket(2 , "action|dialog_return\ndialog_name|popup\nbuttonClicked|bgems")
+                    Sleep(200)
+                    SendPacket(2 , "action|dialog_return\ndialog_name|popup\nbuttonClicked|bgem_suckall")
+                end
+            end
+
+            if GetWorld() == nil then
+                playerHook("Disconnected")
+                Sleep(1000)
+                reconnectPlayer()
+                Sleep(1000)
+                break
+            end
+
+            if GetWorld() == nil then
+                playerHook("Disconnected")
+                Sleep(1000)
+                worldNot()
+                Sleep(1000)
+                break
+            end
+
+            wrenchMe()
+            if not consumeArroz then
+                Sleep(100)
+                for i = 1, 1 do
+                    if Consume_Arroz then
+                        place(4604, 1, 1)
+                        break
+                    end
+                end
+            end
+
+            wrenchMe()
+            if not consumeClover then
+                Sleep(100)
+                for i = 1, 1 do
+                    if Consume_Clover then
+                        place(528, 1, 1)
+                        break
+                    end
+                end
+            end
+
+            wrenchMe()
+            if not ghostState then
+                Sleep(100)
+                for i = 1, 1 do
+                    if autoGhost then
+                        SendPacket(2, "action|input\ntext|/ghost")
+                        break
+                    end
+                end
+            end
+
+            if nowBuy then
+                if Buy_Dl_From_Store then
+                    if GetPlayerInfo().gems >= 10000 then
+                        buyLock = true
+                        if buyLock then
+                            SendPacket(2, "action|buy\nitem|buy_worldlockpack")
+                            Sleep(100)
+
+                            if GetWorld() == nil then
+                                playerHook("Disconnected")
+                                Sleep(1000)
+                                reconnectPlayer()
+                                Sleep(1000)
+                                break
+                            end
+                        end
+                    end
+
+                    if GetPlayerInfo().gems < 10000 then
+                        buyLock = false
+                        Sleep(100)
+                    end
+
+                    if findItem(242) >= 100 then
+                        convert(242)
+                        Sleep(100)
+                    elseif findItem(1796) >= 100 then
+                        Sleep(100)
+                        SendPacket(2,"action|dialog_return\ndialog_name|telephone\nnum|53785|\nx|".. GetLocal().pos.x / 32 .."|\ny|".. GetLocal().pos.y / 32 .."|\nbuttonClicked|bglconvert")
+                    end
+
+                    if autoBank then
+                        if findItem(7188) >= 1 then
+                            SendPacket(2, "action|dialog_return\ndialog_name|bank_deposit\nbgl_count|".. findItem(7188))
+                            Sleep(100)
+                        end
+                    end
+
+                    if not autoBank then
+                        if findItem(7188) >= 100 then
+                            SendPacket(2, "action|dialog_return\ndialog_name|info_box\nbuttonClicked|make_bgl")
+                            Sleep(100)
+                        end
+                    end
+                end
+
+                if Cv_Dl then
+                    if GetPlayerInfo().gems >= 110000 then
+                        autoDLock = true
+                        if autoDLock then
+                            SendPacket(2,"action|dialog_return\ndialog_name|telephone\nnum|53785|\nx|".. GetLocal().pos.x / 32 .."|\ny|".. GetLocal().pos.y / 32 + 1 .."|\nbuttonClicked|dlconvert")
+                            Sleep(100)
+
+                            if GetWorld() == nil then
+                                playerHook("Disconnected")
+                                Sleep(1000)
+                                reconnectPlayer()
+                                Sleep(1000)
+                                break
+                            end
+                        end
+                    end
+
+                    if GetPlayerInfo().gems < 110000 then
+                        autoDLock = false
+                        Sleep(100)
+                    end
+
+                    if findItem(1796) >= 100 then
+                        Sleep(100)
+                        SendPacket(2,"action|dialog_return\ndialog_name|telephone\nnum|53785|\nx|".. GetLocal().pos.x / 32  .."|\ny|".. GetLocal().pos.y / 32 + 1 .."|\nbuttonClicked|bglconvert")
+                        Sleep(100)
+                    end
+
+                    if autoBank then
+                        if findItem(7188) >= 1 then
+                            SendPacket(2, "action|dialog_return\ndialog_name|bank_deposit\nbgl_count|".. findItem(7188))
+                            Sleep(100)
+                        end
+                    end
+
+                    if not autoBank then
+                        if findItem(7188) >= 100 then
+                            SendPacket(2, "action|dialog_return\ndialog_name|info_box\nbuttonClicked|make_bgl")
+                            Sleep(100)
+                        end
+                    end
+                end
+                if changeRemote then
+                    nowBuy = false
+                    Sleep(1000)
+                    break
+                end
+            end
+
+            if GetWorld() == nil then
+                playerHook("Disconnected")
+                Sleep(1000)
+                worldNot()
+                Sleep(1000)
+                break
+            end
+
+            if GetWorld() == nil then
+                playerHook("Disconnected")
+                Sleep(1000)
+                reconnectPlayer()
+                Sleep(1000)
+                break
+            end
+
+            if changeRemote then
+                nowFarm = false
+                break
+            end
+        end
+    end
+end
+
+WRONG PASSWORD!

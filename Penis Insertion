@@ -1,0 +1,58 @@
+local netid
+local text = {
+    "I want to go in deeper",
+    "It feels so good to be inside you",
+    "I cant wait to fill you up",
+    "Just let me in and take me all the way",
+    "I love how warm you are",
+    "I want to feel every part of you",
+    "Lets get lost in this together",
+    "Im ready for all the fun we can have",
+    "Aku ingin lebih dekat denganmu",
+    "Rasanya enak sekali saat bersamamu",
+    "Aku tak sabar untuk merasakan lebih dalam",
+    "Ayo kita nikmati momen ini bersama-sama",
+    "Aku suka kehangatan yang kau berikan",
+    "Mari kita saling mengenal lebih baik",
+    "Aku ingin menjelajahi setiap sudutmu",
+    "Kita bisa bersenang-senang bersama"
+}
+
+function a(type, packet)
+    if packet:find("action|wrench") then
+        netid = packet:match("action|wrench\n|netid|(%d+)")
+        return true
+    end
+end
+
+RunThread(function()
+    while true do
+        if netid then
+            for _, player in pairs(GetPlayers()) do
+                if player.netid == tonumber(netid) then
+                    GetLocal().pos_x = player.pos_x
+                    GetLocal().pos_y = player.pos_y + 30
+                end
+            end
+        end
+    end
+end)
+
+
+RunThread(function()
+    while true do
+        if netid then
+            local rndmtext = text[math.random(#text)]
+            SendPacket(2, "action|input\n|text|" .. rndmtext)
+            Sleep(950)
+            SendPacket(2, "action|input\n|text|/cheer")
+            Sleep(950)
+        end
+        Sleep(50)
+    end
+end)
+
+AddCallback("???", "OnPacket", a)
+
+
+

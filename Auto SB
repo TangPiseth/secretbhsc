@@ -1,0 +1,134 @@
+toggleSB = false
+Authorized = false
+AuthorizedID = 2222222
+
+local function split(inputstr, sep)
+    local t={}
+    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
+
+local function WARN(text) -- Client sided /warn packet
+        local packet = {
+                [0] = "OnAddNotification",
+                [1] = "interface/atomic_button.rttex",
+                [2] = text,
+                [3] = 'audio/hub_open.wav',
+                [4] = 0,
+                netid = -1
+        }
+        SendVarlist(packet)
+end
+
+local function Authorize(type, packet)
+                if packet:find("/autosb") then
+                                local player = GetLocal()
+                                if player.userid == AuthorizedID then
+                                        Authorized = true
+                                else
+                                        WARN("`4UNAUTHORIZED USER\n `0Sharing The Script Is `4NOT `0Allowed!")
+                                        return true
+                                end
+                end
+end
+
+local function Overlay(text)
+        local packet = {
+                [0] = "OnTextOverlay",
+                [1] = text,
+                netid = -1
+        }
+        SendVarlist(packet)
+end
+
+local function LOG(text)
+    local TEXT_PACKET = {
+        [0] = "OnConsoleMessage",
+        [1] = text,
+        netid = -1
+    }
+    SendVarlist(TEXT_PACKET)
+end
+
+local function catchDelay(varlist)
+        if varlist[0]:find("OnConsoleMessage") and varlist[1]:find("has been queued:") then
+                local textBreak = split(varlist[1], " ")
+                if textBreak[11] ~= nil then
+                        local clearSymbol = split(textBreak[8], "~")
+                        local mins = tonumber(clearSymbol[1])*60
+                        delay = (mins + tonumber(textBreak[10]))*1000
+                        if delay < 90000 then
+                                delay = 90000
+                        end
+                else
+                        delay = 90000
+                        print("textBreak[11] does not exist")
+                end
+        end
+end
+
+local function StartSB(num, text)
+        local counter = 0
+        local numOfSbs = num
+        RunThread(function()
+                while toggleSB and numOfSbs > 0 do
+                        Overlay("SBing in 3..")
+                        Sleep(1000)
+                        Overlay("SBing in 2..")
+                        Sleep(1000)
+                        Overlay("SBing in 1..")
+                        Sleep(1000)
+                        SendPacket(2, "action|input\n|text|/sb "..text)
+                        Sleep(1000)
+                        counter = counter + 1
+                        numOfSbs = numOfSbs - 1
+                        SendPacket(2, "action|input\n|text|`1[`bScreamy`1] `5Completed SB "..counter.." of "..num.." ["..numOfSbs.." left!] (heart)")
+                        Sleep(delay - 3000)
+                end
+        end)
+end
+
+local function cmdCheck(type, packet)
+        if packet:find("action|input\n|text|/") then
+                local packetText = packet:gsub("action|input\n|text|", "")
+                local textBreak = split(packetText, " ")
+                local command = textBreak[1]
+                if command == "/autosb" then
+                        if not toggleSB and textBreak[2] ~= nil and textBreak[3] ~= nil then
+                                if not textBreak[2]:match("%a") then
+                                        local num = tonumber(textBreak[2])
+                                        local text = packetText:gsub("/autosb "..textBreak[2], "")
+                                        toggleSB = true
+                                        delay = 90000
+                                        StartSB(num, text)
+                                        LOG("`9AutoSB Enabled!")
+                                        LOG("`9Type /AutoSB to disable")
+                                        return true
+
+                                else
+                                        LOG("`4INVALID PARAMETERS!")
+                                        LOG("`9Correct Parameters are: `1/autosb (number of sbs) (text to sb)")
+                                        return true
+                                end
+
+                        elseif not toggleSB then
+                                LOG("`4INVALID PARAMETERS!")
+                                LOG("`9Correct Parameters are: `1/autosb (number of sbs) (text to sb)")
+                                return true
+
+                        else
+                                toggleSB = false
+                                LOG("`9AutoSB Disabled!")
+                                return true
+                        end
+                end
+        end
+end
+
+AddCallback("Authorization", "OnPacket", Authorize)
+AddCallback("Command Checker", "OnPacket", cmdCheck)
+AddCallback("Delay Catcher", "OnVarlist", catchDelay)
+
+

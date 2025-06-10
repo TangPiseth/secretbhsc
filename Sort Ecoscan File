@@ -1,0 +1,60 @@
+local function readFile(filePath)
+    local file = io.open(filePath, "r")
+    if not file then
+        error("Failed to open file: " .. filePath)
+    end
+    local content = file:read("*all")
+    file:close()
+    return content
+end
+
+local function writeFile(filePath, content)
+    local file = io.open(filePath, "w")
+    if not file then
+        error("Failed to write to file: " .. filePath)
+    end
+    file:write(content)
+    file:close()
+end
+
+local function parseLine(line)
+    local entries = {}
+    for item, value in line:gmatch("([%w#%d]+)%s*%((%d+)") do
+        table.insert(entries, { name = item, value = tonumber(value) })
+    end
+    return entries
+end
+
+local function formatEntries(title, entries)
+    table.sort(entries, function(a, b) return a.value > b.value end)
+    local formatted = {}
+    for _, entry in ipairs(entries) do
+        table.insert(formatted, entry.name .. " (" .. entry.value .. ")")
+    end
+    return title .. ": " .. table.concat(formatted, ", ")
+end
+
+local function processFile(content)
+    local worldLine = content:match("Found worlds%s*:%s*(.-)\n")
+    local playerLine = content:match("Found players%s*:%s*(.-)\n")
+    local totalLine = content:match("Total Items in the economy%s*:%s*(%d+)")
+    
+    local worlds = parseLine(worldLine or "")
+    local players = parseLine(playerLine or "")
+    
+    local formattedWorlds = formatEntries("Found worlds", worlds)
+    local formattedPlayers = formatEntries("Found players", players)
+    local formattedTotal = "Total Items in the economy: " .. (totalLine or "0")
+    
+    return table.concat({ formattedWorlds, formattedPlayers, formattedTotal }, "\n")
+end
+
+local desktopPath = os.getenv("USERPROFILE") .. "\\Desktop\\message.txt"
+
+local content = readFile(desktopPath)
+local formattedContent = processFile(content)
+writeFile(desktopPath, formattedContent)
+
+print("File successfully formatted!")
+
+

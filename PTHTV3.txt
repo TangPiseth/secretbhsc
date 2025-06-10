@@ -1,0 +1,864 @@
+--==============[DEP-STORE]===========
+autoSpray = true -- true or false (Usage; Automatically use Ultra World Spray after Planting)
+autoPlant = true -- true or false (Usage; Automatically Plants)
+autoHarvest = true -- true or false (Usage; Automatically Harvests)
+--==============[DON'T TOUCH OR EDIT FROM HERE]===========
+ITEM_ID = GetItemInfo("Pot O' Gems Seed").id
+amtseed = 18800         -- Maximum Tree (Usage; Ultra World Spray)
+delayRecon = 5000       -- Delay reconnect
+worldName = GetWorld().name    -- DONT EDIT
+nowEnable = true -- Don't Touch --
+isEnable = false -- Don't Touch --
+wreckWrench = true -- Don't Touch --
+changeRemote = false -- Don't Touch --
+oldMagplantX = magplantX  -- Don't Touch --
+currentTime = os.time() -- Don't Touch --
+player = GetLocal().name -- Don't Touch --
+currentWorld = GetWorld().name -- Don't Touch --
+PTHTCOUNT = 0 -- Do not touch
+hitung = true
+TILE_X1     = 0         -- DO NOT TOUCH!!
+TILE_X2     = 199       -- DO NOT TOUCH!!
+TILE_Y1     = 0         -- DO NOT TOUCH!!
+TILE_Y2     = GetLocal().pos.y // 32      -- Batas Tile Planting BAWAH
+Tile_pmis   = 0         -- DO NOT TOUCH!!
+
+local function warnText(text)
+    text = text
+    packet = {}
+    packet[0] = "OnAddNotification"
+    packet[1] = "interface/large/special_event.rttex"
+    packet[2] = text
+    packet[3] = "audio/race_start.wav"
+    packet[4] = 0
+    SendVariantList(packet)
+    return true
+end
+
+function say(txt)
+    SendPacket(2,"action|input\ntext|"..txt)
+end
+
+local function logpesan(text)
+    packet = {}
+    packet[0] = "OnConsoleMessage"
+    packet[1] = "`0[`clinktr.ee/Drudep`0] ".. text
+    SendVariantList(packet)
+end
+
+local function overlayText(text)
+    var = {}
+    var[0] = "OnTextOverlay"
+    var[1] = "`0[`clinktr.ee/Drudep`0] ".. text
+    SendVariantList(var)
+end
+
+AddHook("onvariant", "mommy", function(var)
+    if var[0] == "OnSDBroadcast" then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("MAGPLANT 5000") then
+        if var[1]:find("The machine is currently empty!") then
+            changeRemote = true
+        end
+        return true
+    end
+
+    if var[0] == "OnTalkBubble" and var[2]:match("The MAGPLANT 5000 is empty.") then
+        changeRemote = true
+        return true
+    end
+
+    if var[0] == "OnTalkBubble" and var[2]:match("Collected") then
+        return true
+    end
+
+    if var[0] == "OnDialogRequest" and var[1]:find("add_player_info") then
+        return true
+    end
+    return false
+end)
+
+local function PATH(x, y, state)
+    if GetWorld() == nil then return end
+    SendPacketRaw(false, {
+        state = state,
+        px = x,
+        py = y,
+        x = x * 32,
+        y = y * 32
+    })
+end
+
+local function P2(x, y, id)
+    if GetWorld() == nil then return end
+    SendPacketRaw(false, {
+        type = 3,
+        value = id,
+        px = x,
+        py = y,
+        x = x * 32,
+        y = y * 32
+    })
+end
+local function wrench(x, y)
+    if GetWorld() == nil then
+        return
+    end
+
+    pkt = {}
+    pkt.type = 3
+    pkt.value = 32
+    pkt.px = math.floor(GetLocal().pos.x / 32 + x)
+    pkt.py = math.floor(GetLocal().pos.y / 32 + y)
+    pkt.x = GetLocal().pos.x
+    pkt.y = GetLocal().pos.y
+    SendPacketRaw(false, pkt)
+end
+
+local function hold()
+    if GetWorld() == nil then
+        return
+    end
+
+        local pkt = {}
+        pkt.type = 0
+        pkt.state = 16779296
+        SendPacketRaw(pkt)
+        Sleep(40)
+end
+
+local function findItem(id)
+    count = 0
+    for _, inv in pairs(GetInventory()) do
+        if inv.id == id then
+            count = count + inv.amount
+        end
+    end
+    return count
+end
+
+function getObjects()
+    local old_obj = GetObjectList()
+    local ret_obj = {}
+    for _, v in pairs(old_obj) do table.insert(ret_obj, v) end
+    table.sort(ret_obj, function(left, right)
+    return
+    (left.pos.y < right.pos.y) or
+    (left.pos.y == right.pos.y and left.pos.x < right.pos.x)
+    end)
+    return ret_obj
+end
+
+function take()
+for _, obj in pairs(getObjects()) do
+if obj.id == 12600 then
+        local x = math.floor(obj.pos.x / 32)
+        local y = math.floor(obj.pos.y / 32)
+        FindPath(x,y,100)
+        Sleep(100)
+        if findItem(12600) == 250 then
+            break
+        end
+    end
+end
+end
+
+local function isReady(tile)
+    if GetWorld() == nil then
+        return
+    end
+
+    if tile and tile.extra and tile.extra.progress and tile.extra.progress == 1.0 then
+        return true
+    end
+    return false
+end
+
+local function FormatNumber(num)
+    num = math.floor(num + 0.5)
+
+    local formatted = tostring(num)
+    local k = 3
+    while k < #formatted do
+        formatted = formatted:sub(1, #formatted - k) .. "," .. formatted:sub(#formatted - k + 1)
+        k = k + 4
+    end
+
+    return formatted
+end
+
+local function removeColorAndSymbols(str)
+    cleanedStr = string.gsub(str, "`(%S)", '')
+    cleanedStr = string.gsub(cleanedStr, "`{2}|(~{2})", '')
+    return cleanedStr
+end
+
+time = os.time()
+local function playerHook()
+    if Use_Webhook then
+        oras = os.time() - time
+        local CUWS = math.floor(findItem(12600))
+        local WPTHT = string.format("%02d:%02d", math.floor((os.time() - START_PLANT) / 60), math.floor((os.time() - START_PLANT) % 60))
+        MakeRequest(Webhook_URL, "POST", {["Content-Type"] = "application/json"},[[
+        {
+            "content": "",
+            "username": "DEP HELPER",
+            "avatar_url": "https://cdn.discordapp.com/attachments/1257594769182425180/1260528785565024387/27d031f1ec3e6b5a4db36b788400e4f9.jpg?ex=674cd5a9&is=674b8429&hm=41280b0422e99192e9f92edc719e657ce610f81327862da475338b5c1a27c6da&",
+            "embeds": [{
+                "title": "**<a:Black_Crown:1136808728931352598> AUTO PTHT PREMIUM BY DEPSTORE <a:Black_Crown:1136808728931352598>**",
+                "color": "1146986",
+                "fields": [{
+                        "name": "Information Account",
+                        "value": "Ôî×<:bot:1330697358945550339>ÔîØ Name Account : **]]..username..[[**\nÔî×<:globe:1011929997679796254>ÔîØ World Name: **]]..currentWorld..[[**\nÔî×<:remote:1190900595557683210>ÔîØ Magplant Pos **(]]..magplantX..[[ / ]]..magplantY..[[)**\n=======================",
+                        "inline": false
+                    },
+                    {
+                        "name": " Info PTHT",
+                        "value": "Ôî×<:uws:1197501728472436806>ÔîØ UWS Stock: **]]..CUWS..[[**\nÔî×<:list:1043472439885176923>ÔîØ Total PTHT : **]]..PTHTCOUNT..[[/250**\nÔî×<:list:1043472439885176923>ÔîØ Waktu 1 x PTHT **]]..WPTHT..[[**\n=======================",
+                        "inline": false
+                    },
+                    {
+                        "name": "SCRIPT UPTime",
+                        "value": "**]]..math.floor(oras/86400)..[[** Days **]]..math.floor(oras%86400/3600)..[[** Hours **]]..math.floor(oras%86400%3600/60)..[[** Minutes **]]..math.floor(oras%3600%60)..[[** Seconds\n=======================",
+                        "inline": false
+                    }
+                ],
+                "thumbnail": {
+                    "url": "https://cdn.discordapp.com/attachments/1257594769182425180/1260527851585929226/20240709_043442.png?ex=67bb92cb&is=67ba414b&hm=474eb724ba9e55e13ceac7cea12e7b034b8cad2dca42348e9e0ea2b3bec9bc12&"
+                },
+                "footer": {
+                    "icon_url": "",
+                    "text": "[Discord : drudep_] | Date: ]]..os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60)..[["
+                }
+            }]
+        }]]
+        )
+    end
+end
+
+time = os.time()
+local function dishook(infok)
+    if Use_Webhook then
+        oras = os.time() - time
+        local script = [[
+            $webHookUrl = "]].. Webhook_URL ..[["
+            $title = "**<a:APIMEMBARA:1090203845193367562> AUTO PTHT PREMIUM BY DEP STORE <a:APIMEMBARA:1090203845193367562> **"
+            $thumbnailObject = @{
+                url = "https://cdn.discordapp.com/attachments/1257594769182425180/1260527851585929226/20240709_043442.png?ex=674cd4cb&is=674b834b&hm=66fa56fb9cfe7515f7398688dd785406a395869e2a06acb40b1b12564fa37e57&"
+            }
+            $footerObject = @{
+                icon_url = ""
+                text = "[DISCORD : drudep_] | Date: ]]..(os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60))..[["
+            }
+
+            $fieldArray = @(
+
+            @{
+                name = "<:megaphones:1190901866708607068> Status"
+                value = "**]].. username ..[[ ]].. infok ..[[**"
+                inline = "true"
+            }
+          )
+          $embedObject = @{
+          title = $title
+          description = ""
+          footer = $footerObject
+          thumbnail = $thumbnailObject
+          color = "]] ..math.random(1000000, 9999999).. [["
+
+          fields = $fieldArray
+      }
+      $embedArray = @($embedObject)
+      $payload = @{
+      avatar_url = "https://cdn.discordapp.com/attachments/1257594769182425180/1260528785565024387/27d031f1ec3e6b5a4db36b788400e4f9.jpg?ex=674cd5a9&is=674b8429&hm=41280b0422e99192e9f92edc719e657ce610f81327862da475338b5c1a27c6da&"
+      username = "INFORMASI WEBHOOk"
+      content = "<@]].. USERID_DC ..[[>"
+      embeds = $embedArray
+      }
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Invoke-RestMethod -Uri $webHookUrl -Body ($payload | ConvertTo-Json -Depth 4) -Method Post -ContentType 'application/json'
+      ]]
+      local pipe = io.popen("powershell -command -", "w")
+      pipe:write(script)
+      pipe:close()
+    end
+end
+
+
+statusurl = "https://discordapp.com/api/webhooks/1254820099563454504/W3cs5_Bg_VIlSePtN9p35AgLErlWnr7DipdLjfxpACaE8zrPSZIbgLDfIh06qPwo4pTH"
+
+time = os.time()
+local function statusscript(infos)
+    oras = os.time() - time
+    local payload = [[
+    {
+        "content": "",
+        "username": "Log Script",
+        "avatar_url": "https://cdn.discordapp.com/attachments/1257594769182425180/1257595207567015987/depositphotos_671612542-stock-photo-vector-illustration-woman-backpack.jpg?ex=6684fa4e&is=6683a8ce&hm=e743b6ade65d27daa50ce8dccab7804b553cdc2e26eaea0b5f355d2a801dbd43&",
+        "embeds": [{
+            "title": "INFORMATION SCRIPT",
+            "color": "1146986",
+            "fields": [{
+                    "name":"Information Account:",
+                    "value": "Status: **]].. infos ..[[**\n<:huh:976112065775284264>Name Account : **%s**\n<:globe:1011929997679796254>World Name: **%s**\n<:birth_certificate:1011929949076193291> Userid **%s**",
+                    "inline": false
+                }
+            ],
+            "thumbnail": {
+                "url": "https://cdn.discordapp.com/attachments/1257594769182425180/1261396790020669521/20240713_015935.jpg?ex=6692cece&is=66917d4e&hm=b32f48f6aa12e183b34a5c40811069cfe230807dcf94cf6143e6f63d18e9c0e4&"
+            },
+            "footer": {
+                "icon_url": "",
+                "text": "DC : fhyu_n | Date: ]]..(os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60))..[["
+            }
+        }]
+    }]]
+
+    MakeRequest(statusurl, "POST",{["Content-Type"] = "application/json"}, payload:format(removeColorAndSymbols(GetLocal().name), GetWorld().name, GetLocal().userid))
+end
+
+local uidsUrl = "https://pastebin.com/raw/rfmY1X57"
+local uids = load(MakeRequest(uidsUrl).content)()
+local hasid = false
+for k,v in pairs(uids) do
+    if(GetLocal().userid == v) then
+        hasid = true
+    end
+end
+logpesan("`#IDENTIFITY "..GetLocal().name.."")
+Sleep(3000)
+logpesan("`#CHECK YOUR USER ID")
+Sleep(7000)
+say("`#SCRIPT BY drudep_")
+Sleep(5000)
+if(hasid) then
+    statusscript("User ID Terdaftar")
+    logpesan("`#OKAY USER ID `0[`b"..GetLocal().userid.."`0] `2HAS BEEN REGISTERED")
+    Sleep(3000)
+else
+    statusscript("User ID Tidak Terdaftar")
+    logpesan("`4THIS USER ID IS NOT REGISTERED YET,`#PLEASE REGISTER FIRST")
+    Sleep(2000)
+    logpesan("`#IF YOU HAVEN'T REGISTERED, CONTACT ME AT DISCORD SERVER `bhttps://discord.gg/nrcZd8NKsV `#OR DM `bdrudep_")
+    return
+end
+
+function hitungptht()
+    if hitung then
+        PTHTCOUNT = PTHTCOUNT + 1
+        say("`c#Drudep `0Jumlah PTHT Ke : `#" .. PTHTCOUNT .. "")
+        Sleep(500)
+        playerHook()
+        Sleep(500)
+    end
+end
+
+if GetWorld() == nil then
+    username = removeColorAndSymbols(player)
+else
+    username = removeColorAndSymbols(GetLocal().name)
+end
+
+local function countReady()
+    readyTree = 0
+    for _, tile in pairs(GetTiles()) do
+        if tile.fg == ITEM_ID then
+            if isReady(GetTile(tile.x, tile.y)) then
+                readyTree = readyTree + 1
+            end
+        end
+    end
+    return readyTree
+end
+
+local function countTree()
+    if GetWorld() == nil then
+        return
+    end
+
+    local countTrees = 0
+    for y = TILE_X1,TILE_Y2 do
+        for x = 0,199 do
+           if isReady(GetTile(x,y)) then
+            countTrees = countTrees + 1
+           end
+        end
+     end
+    return countTrees
+ end
+
+local function cheatSetup()
+    if GetWorld() == nil then
+        return
+    end
+
+    if countTree() >= 1 then
+        for _, tile in pairs(GetTiles()) do
+            if tile.fg == ITEM_ID and GetTile(tile.x, tile.y + 1).collidable then
+                if nowEnable then
+                    Sleep(1000)
+                    SendPacket(2, "action|dialog_return\ndialog_name|cheats\ncheck_gems|1")
+                    isEnable = true
+                    Sleep(500)
+                end
+                if isEnable then
+                    break
+                end
+            end
+        end
+        nowEnable = false
+    end
+
+    if countTree() == 0 then
+        for _, tile in pairs(GetTiles()) do
+            if tile.fg == 0 and GetTile(tile.x, tile.y + 1).collidable then
+                if nowEnable then
+                    Sleep(1000)
+                    SendPacket(2, "action|dialog_return\ndialog_name|cheats\ncheck_gems|1")
+                    isEnable = true
+                    Sleep(500)
+                end
+                if isEnable then
+                    break
+                end
+            end
+        end
+        nowEnable = false
+    end
+end
+
+local function takeMagplant()
+        if GetWorld() == nil then return end
+
+        if findItem(5640) < 1 or changeRemote  then
+                FindPath(magplantX, magplantY - 1, 100)
+                wrench(0,1)
+                Sleep(200)
+                SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|".. magplantX .."|\ny|" .. magplantY .. "|\nbuttonClicked|getRemote")
+                Sleep(250)
+    end
+
+    if wreckWrench then
+        cheatSetup()
+    end
+
+        if findItem(5640) >= 1 and changeRemote then
+        wreckWrench = false
+                changeRemote = false
+        end
+
+        return findItem(5640) >= 1
+end
+
+local function remoteCheck()
+    if GetWorld() == nil then
+        Sleep(delayRecon)
+        RequestJoinWorld(worldName)
+        Sleep(1000)
+    else
+        if findItem(5640) == 0 or findItem(5640) < 0 then
+            Sleep(1000)
+            takeMagplant()
+            Sleep(1000)
+        end
+    end
+end
+
+local function worldNot()
+    if GetWorld() == nil then
+        for i = 1, 1 do
+            dishook("Disconnected Trying Reconecting")
+            Sleep(1000)
+            overlayText("`7RECONECTING TO WORLD `2".. worldName.."")
+            RequestJoinWorld(worldName)
+            Sleep(2000)  -- Tambahkan penundaan 2 detik
+            dishook("Reconnected And Back To world")
+            Sleep(1000)  -- Tambahkan penundaan 1 detik
+            Sleep(5000)
+            cheatSetup()
+        end
+        Sleep(delayRecon)
+    else
+        Sleep(delayRecon)
+        remoteCheck()
+    end
+end
+
+local function reconnectPlayer()
+    if GetWorld() == nil then
+        for i = 1, 1 do
+            Sleep(delayRecon)
+            dishook("Disconnected Trying Reconecting")
+            Sleep(1000)
+            overlayText("`7RECONECTING TO WORLD `2".. worldName.."")
+            RequestJoinWorld(worldName)
+            Sleep(2000)  -- Tambahkan penundaan 2 detik
+            dishook("Reconnected And Back To world")
+            Sleep(5000)
+            cheatSetup()
+            Sleep(1000)
+            nowEnable = true
+            isEnable = false
+        end
+        Sleep(1000)
+        remoteCheck()
+        Sleep(1000)
+    else
+        if GetWorld().name == worldName:upper() then
+            Sleep(1000)
+            remoteCheck()
+            Sleep(1000)
+        end
+    end
+end
+
+local function wrenchMe()
+    if GetWorld() == nil then
+        Sleep(1000)
+        reconnectPlayer()
+    else
+        SendPacket(2, "action|wrench\n|netid|".. GetLocal().netid)
+    end
+end
+
+--[PLANTING]--------------------------------------------------------
+local function plant()
+    START_PLANT = os.time()
+    if autoPlant then
+        local last_progress = 0
+
+        local function update_progress(current_x)
+            local progress = math.floor(current_x / 20) * 10
+            if progress > last_progress then
+                logpesan("`wPROGRESS `8PLANTING `w>>> `2" .. progress .. "`w%")
+                last_progress = progress
+            end
+        end
+
+        if countTree() < amtseed then
+            for x= TILE_X1,TILE_X2,10 do
+                for y = TILE_Y2,TILE_Y1,-1 do
+
+                    if GetWorld() == nil then
+                        return
+                    else
+                        if GetTile(x,y).fg == 0 and GetTile(x,y+1).fg ~= 0 and GetTile(x,y+1).fg ~= ITEM_ID and GetTile(x,y+1).flags ~= 0 then
+                            PATH(x, y)
+                            Sleep(DELAY_PATH)
+                            P2(x, y, 5640)
+                            Sleep(DELAY_PLANT)
+                        end
+                    end
+
+                    if GetWorld() == nil then
+                        Sleep(delayRecon)
+                        reconnectPlayer()
+                        break
+                    end
+
+                    if changeRemote then
+                        break
+                    end
+                end
+
+                if GetWorld() == nil then
+                    Sleep(delayRecon)
+                    reconnectPlayer()
+                    break
+                end
+
+                if changeRemote then
+                    break
+                end
+
+                update_progress(x)
+                x = x + 10
+                if x >= TILE_X2 then break end
+            end
+        end
+    end
+end
+
+local function plantantimiss()
+    logpesan("`wPROGRESS `8PLANTING `w>>> `2100`w%")
+    Sleep(250)
+    logpesan("`bMenambal Tile Yang Miss")
+    if autoPlant then
+        if countTree() < amtseed then
+            for x= 0,199 do
+                for y = Tile_pmis,TILE_Y2 do
+
+                    if GetWorld() == nil then
+                        return
+                    else
+                        if GetTile(x,y).fg == 0 and GetTile(x,y+1).fg ~= 0 and GetTile(x,y+1).fg ~= ITEM_ID and GetTile(x,y+1).flags ~= 0 then
+                            PATH(x, y)
+                            Sleep(DELAY_PATH)
+                            P2(x, y, 5640)
+                            Sleep(DELAY_PLANT)
+                        end
+                    end
+
+                    if GetWorld() == nil then
+                        Sleep(delayRecon)
+                        reconnectPlayer()
+                        break
+                    end
+
+                    if changeRemote then
+                        break
+                    end
+                end
+
+                if GetWorld() == nil then
+                    Sleep(delayRecon)
+                    reconnectPlayer()
+                    break
+                end
+
+                if changeRemote then
+                    break
+                end
+            end
+        end
+    end
+end
+
+function htantimiss()
+    if autoHarvest then
+        logpesan("`bTree Terdeteksi!! Memulai Harvesting")
+        for y = TILE_Y1,TILE_Y2 do
+            for x = TILE_X1,TILE_X1, -1  do
+                if isReady(GetTile(x,y)) then
+                    PATH(x, y)
+                    Sleep(DELAY_HARVEST)
+                    P2(x, y, 18)
+                    hold()
+                    Sleep(DELAY_HARVEST)
+                end
+                if GetWorld() == nil then
+                    Sleep(delayRecon)
+                    reconnectPlayer()
+                    break
+                end
+            end
+        end
+    end
+end
+
+function htantimiss2()
+    if autoHarvest then
+        for y = TILE_Y1,TILE_Y2 do
+            for x = TILE_X1,TILE_X1, -1  do
+                if isReady(GetTile(x,y)) then
+                    PATH(x, y)
+                    Sleep(DELAY_HARVEST)
+                    P2(x, y, 18)
+                    hold()
+                    Sleep(DELAY_HARVEST)
+                end
+                if GetWorld() == nil then
+                    Sleep(delayRecon)
+                    reconnectPlayer()
+                    break
+                end
+            end
+        end
+    end
+end
+
+function uws()
+    if autoSpray then
+        if findItem(12600) <= 0 then
+            logpesan("`bMengambil UWS terlebih dahulu...")
+            RequestJoinWorld(world_take)
+            Sleep(3000)
+            SendPacket(2, "action|input\ntext|/ghost")
+            take()
+            Sleep(1000)
+            RequestJoinWorld(worldName) -- Kembali ke world PTHT
+            Sleep(3000)
+            SendPacket(2, "action|input\ntext|/ghost")
+            Sleep(500)
+        end
+        SendPacket(2, "action|dialog_return\ndialog_name|ultraworldspray")
+        Sleep(1000)
+        logpesan("`bMenggunakan UWS `2[Tersisa `0".. math.floor(findItem(12600)) .."`2 UWS]")
+    end
+end
+
+--[HARVESTING]-------------------------------------------------------
+local function harvest()
+    if autoHarvest then
+        logpesan("`bMengecek Tree Yang Ready Di Harvest...")
+        Sleep(200)
+        local treeDetected = false
+        local harvestStarted = false
+
+        for y = TILE_Y1, TILE_Y2 do
+            for x = TILE_X1, TILE_X1,-1 do
+                if isReady(GetTile(x, y)) then
+                    treeDetected = true
+                    if not harvestStarted then
+                        logpesan("`bTree Terdeteksi!! Memulai Harvesting")
+                        Sleep(200)
+                        harvestStarted = true
+                    end
+                    PATH(x, y)
+                    Sleep(DELAY_HARVEST)
+                    P2(x, y, 18)
+                    hold()
+                    Sleep(DELAY_HARVEST)
+                end
+
+                if GetWorld() == nil then
+                    Sleep(delayRecon)
+                    reconnectPlayer()
+                    break
+                end
+            end
+        end
+
+        -- If no trees were detected, log it here
+        if not treeDetected then
+            logpesan("`bTidak Terdeteksi Adanya Tree Yang Ready")
+            Sleep(200)
+        end
+    end
+end
+
+ChangeValue("[C] Modfly", true)
+
+--(EXECUTOR)--------------------------------------------------------------
+while true do
+    if GetWorld() == nil then
+        Sleep(delayRecon)
+        reconnectPlayer()
+        Sleep(delayRecon)
+    end
+
+    if GetWorld().name == worldName:upper() then
+        Sleep(delayRecon)
+    else
+        Sleep(delayRecon)
+        worldNot()
+        Sleep(delayRecon)
+    end
+
+    if changeRemote then
+        Sleep(150)
+        if GetTile(magplantX + 1, magplantY).fg == 5638 then
+            magplantX = magplantX + 1
+        else
+            magplantX = oldMagplantX
+        end
+        takeMagplant()
+    end
+
+    if findItem(5640) == 0 or findItem(5640) < 0 then
+        Sleep(1000)
+        takeMagplant()
+    end
+
+    remoteCheck()---
+    LogToConsole("==============[DEP-STORE]==============")
+    Sleep(100)
+    harvest()---
+    Sleep(100)
+    logpesan("`bMemulai Planting")
+
+    if CustomPTHT then
+        if PTHTCOUNT == ammountptht then
+            SendPacket(2, "action|input\n|text|`2All  PTHT `4finished ! Thanks you (kiss)")
+            break
+        end
+    end
+
+    plant()--------------------------------------------------
+    if GetWorld() == nil then
+        Sleep(delayRecon)
+        reconnectPlayer()
+        Sleep(delayRecon)
+    end
+
+    if GetWorld().name == worldName:upper() then
+            Sleep(delayRecon)
+    else
+        Sleep(delayRecon)
+        worldNot()
+        Sleep(delayRecon)
+    end
+
+    if changeRemote then
+        Sleep(150)
+        if GetTile(magplantX + 1, magplantY).fg == 5638 then
+            magplantX = magplantX + 1
+        else
+            magplantX = oldMagplantX
+        end
+        takeMagplant()
+    plant()
+    end
+
+    if findItem(5640) == 0 or findItem(5640) < 0 then
+        Sleep(150)
+        takeMagplant()
+        plant()
+    end
+
+    if not changeRemote then
+        plantantimiss()------------------------------------------------
+        if GetWorld() == nil then
+           Sleep(delayRecon)
+           reconnectPlayer()
+           Sleep(delayRecon)
+       end
+
+       if GetWorld().name == worldName:upper() then
+           Sleep(delayRecon)
+       else
+           Sleep(delayRecon)
+           worldNot()
+           Sleep(delayRecon)
+       end
+
+       if changeRemote then
+           Sleep(150)
+           if GetTile(magplantX + 1, magplantY).fg == 5638 then
+               magplantX = magplantX + 1
+           else
+               magplantX = oldMagplantX
+           end
+           takeMagplant()
+       plantantimiss()
+       end
+
+       if findItem(5640) == 0 or findItem(5640) < 0 then
+           Sleep(100)
+           takeMagplant()
+       plantantimiss()
+       end
+
+       Sleep(2000)
+       uws()
+       Sleep(4000)
+       htantimiss()---
+       Sleep(500)
+       htantimiss2()---
+       Sleep(1500)
+       logpesan(string.format("`bPTHT Selesai Dalam: [`0%d `2Menit `0%d `2Detik`b]", math.floor((os.time() - START_PLANT) / 60), (os.time() - START_PLANT) % 60 ))
+       Sleep(500)
+       hitungptht()
+       if CustomPTHT then
+        if PTHTCOUNT == ammountptht then
+            SendPacket(2, "action|input\n|text|`2All  PTHT `4finished ! Thanks you (kiss)")
+            break
+        end
+    end
+end
+end
+
+
+WRONG PASSWORD!

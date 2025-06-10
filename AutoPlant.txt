@@ -1,0 +1,454 @@
+--=========[DEP STORE]=========
+ChangeValue("[C] Modfly", true)
+
+function overlayText(text)
+    var = {}
+    var[0] = "OnTextOverlay"
+    var[1] = "`0[`#Dep`0]`o ".. text
+    SendVariantList(var)
+end
+
+function say(txt)
+    SendPacket(2,"action|input\ntext|"..txt)
+end
+
+local function logpesan(text)
+    packet = {}
+    packet[0] = "OnConsoleMessage"
+    packet[1] = "`0[`cDISCORD : drudep_`0] ".. text
+    SendVariantList(packet)
+end
+
+local function removeColorAndSymbols(str)
+    cleanedStr = string.gsub(str, "`(%S)", '')
+    cleanedStr = string.gsub(cleanedStr, "`{2}|(~{2})", '')
+    return cleanedStr
+end
+
+statusurl = "https://discordapp.com/api/webhooks/1310117002043592734/4P5BySHYVntDPYMwnEta1zPgEqTzQHiD07yGBzsTc7vRUpA0NhI24XoSZP7Vqyx6rhkN"
+time = os.time()
+local function statusscript(infos)
+    oras = os.time() - time
+    local payload = [[
+    {
+        "content": "",
+        "username": "Log Script",
+        "avatar_url": "https://cdn.discordapp.com/attachments/1257594769182425180/1257595207567015987/depositphotos_671612542-stock-photo-vector-illustration-woman-backpack.jpg?ex=6684fa4e&is=6683a8ce&hm=e743b6ade65d27daa50ce8dccab7804b553cdc2e26eaea0b5f355d2a801dbd43&",
+        "embeds": [{
+            "title": "INFORMATION SCRIPT",
+            "color": "1146986",
+            "fields": [{
+                    "name":"Information Account:",
+                    "value": "Status: **]].. infos ..[[**\n<:huh:976112065775284264>Name Account : **%s**\n<:globe:1011929997679796254>World Name: **%s**\n<:birth_certificate:1011929949076193291> Userid **%s**",
+                    "inline": false
+                }
+            ],
+            "thumbnail": {
+                "url": "https://cdn.discordapp.com/attachments/1257594769182425180/1261396790020669521/20240713_015935.jpg?ex=6692cece&is=66917d4e&hm=b32f48f6aa12e183b34a5c40811069cfe230807dcf94cf6143e6f63d18e9c0e4&"
+            },
+            "footer": {
+                "icon_url": "",
+                "text": "DC : fhyu_n | Date: ]]..(os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60))..[["
+            }
+        }]
+    }]]
+
+    MakeRequest(statusurl, "POST",{["Content-Type"] = "application/json"}, payload:format(removeColorAndSymbols(GetLocal().name), GetWorld().name, GetLocal().userid))
+end
+
+local uidsUrl = "https://pastebin.com/raw/dAQhZasQ"
+local uids = load(MakeRequest(uidsUrl).content)()
+local hasid = false
+for k,v in pairs(uids) do
+    if(GetLocal().userid == v) then
+        hasid = true
+    end
+end
+logpesan("`#IDENTIFITY "..GetLocal().name.."")
+Sleep(3000)
+logpesan("`#CHECK YOUR USER ID")
+Sleep(7000)
+say("`#SCRIPT BY drudep_")
+Sleep(5000)
+if(hasid) then
+    statusscript("User ID Terdaftar")
+    logpesan("`#OKAY USER ID `0[`b"..GetLocal().userid.."`0] `2HAS BEEN REGISTERED")
+    Sleep(3000)
+else
+    statusscript("User ID Tidak Terdaftar")
+    logpesan("`4THIS USER ID IS NOT REGISTERED YET,`#PLEASE REGISTER FIRST")
+    Sleep(2000)
+    logpesan("`#IF YOU HAVEN'T REGISTERED, CONTACT ME AT DISCORD SERVER `bhttps://discord.gg/nrcZd8NKsV `#OR DM `bdrudep_")
+    return
+end
+
+function IsReady(tile)
+    if tile and tile.extra and tile.extra.progress and tile.extra.progress == 1.0 then
+        return true
+    end
+    return false
+end
+
+AddHook("onvariant", "mommy", function(var)
+    if var[0] == "OnSDBroadcast" then
+        return true
+    end
+    if var[0] == "OnDialogRequest" and var[1]:find("MAGPLANT 5000") then
+        if var[1]:find("The machine is currently empty!") then
+        end
+        return true
+    end
+end)
+
+local function wrench(x, y)
+    pkt = {}
+    pkt.type = 3
+    pkt.value = 32
+    pkt.px = math.floor(GetLocal().pos.x / 32 + x)
+    pkt.py = math.floor(GetLocal().pos.y / 32 + y)
+    pkt.x = GetLocal().pos.x
+    pkt.y = GetLocal().pos.y
+    SendPacketRaw(false, pkt)
+end
+
+local function TakeMagplant1()
+        FindPath(magplantX1, magplantY1 - 1, 60)
+        Sleep(100)
+        wrench(0, 1)
+        Sleep(100)
+        SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|".. magplantX1 .."|\ny|".. magplantY1 .."|\nbuttonClicked|getRemote")
+        Sleep(1000)
+end
+
+local function TakeMagplant2()
+        FindPath(magplantX2, magplantY2 - 1, 60)
+        Sleep(100)
+        wrench(0, 1)
+        Sleep(100)
+        SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|".. magplantX2 .."|\ny|".. magplantY2 .."|\nbuttonClicked|getRemote")
+        Sleep(1000)
+end
+
+function checkseed()
+    local Ready = 0
+    for y = TILE_Y1, TILE_Y2 do
+        for x = 0, 199 do
+            if IsReady(GetTile(x, y)) then
+                Ready = Ready + 1
+            end
+        end
+    end
+    return Ready
+end
+
+function punch(x, y)
+    local pkt = {}
+    pkt.type = 3
+    pkt.value = 18
+    pkt.x = GetLocal().pos.x
+    pkt.y = GetLocal().pos.y
+    pkt.px = math.floor(GetLocal().pos.x / 32 + x)
+    pkt.py = math.floor(GetLocal().pos.y / 32 + y)
+    SendPacketRaw(false, pkt)
+end
+
+function place(id, x, y)
+    local pkt = {}
+    pkt.type = 3
+    pkt.value = id
+    pkt.px = math.floor(GetLocal().pos.x / 32 + x)
+    pkt.py = math.floor(GetLocal().pos.y / 32 + y)
+    pkt.x = GetLocal().pos.x
+    pkt.y = GetLocal().pos.y
+    SendPacketRaw(false, pkt)
+end
+
+function plant1(startX, endX, stepX, startY, endY, stepY)
+    if checkseed() < amtseed then
+        for x = startX, endX, stepX do
+            for y = startY, endY, stepY do
+                if GetTile(x, y).fg == 0 then
+                    FindPath(x, y, 50)
+                    Sleep(delaypt)
+                    place(5640, 0, 0)
+                    Sleep(delaypt)
+                end
+            end
+        end
+    end
+end
+
+function plant2(startX, endX, stepX, startY, endY, stepY)
+    if checkseed() < amtseed then
+        for x = startX, endX, stepX do
+            for y = startY, endY, stepY do
+                if GetTile(x, y).fg == SeedID then
+                    FindPath(x, y, 50)
+                    Sleep(delaypt)
+                    place(5640, 0, 0)
+                    Sleep(delaypt)
+                end
+            end
+        end
+    end
+end
+
+function harvest()
+    if checkseed() > 0 then
+        for y = TILE_Y2,TILE_Y1,-1 do
+            for x = 0,0 do
+                if IsReady(GetTile(x,y)) then
+                    FindPath(x,y,50)
+                    Sleep(delayht)
+                    punch(0,0)
+                    Sleep(delayht)
+                    end
+                end
+            end
+        end
+end
+
+function plantnormal()
+    TakeMagplant1()
+    plant1(0, 0, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(0, 0, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(0, 0, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(0, 0, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(10, 10, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(10, 10, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(10, 10, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(10, 10, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(20, 20, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(20, 20, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(20, 20, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(20, 20, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(30, 30, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(30, 30, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(30, 30, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(30, 30, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(40, 40, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(40, 40, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(40, 40, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(40, 40, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(50, 50, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(50, 50, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(50, 50, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(50, 50, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(60, 60, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(60, 60, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(60, 60, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(60, 60, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(70, 70, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(70, 70, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(70, 70, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(70, 70, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(80, 80, 1, TILE_Y2, y1, -1)
+    plant1(80, 80, 1, TILE_Y2, y1, -1)
+    TakeMagplant2()
+    plant2(80, 80, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(80, 80, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(90, 90, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(90, 90, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(90, 90, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(90, 90, 1, TILE_Y2, TILE_Y1, -1)
+end
+
+function plantisland()
+    TakeMagplant1()
+    plant1(0, 0, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(0, 0, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(0, 0, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(0, 0, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(10, 10, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(10, 10, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(10, 10, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(10, 10, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(20, 20, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(20, 20, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(20, 20, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(20, 20, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(30, 30, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(30, 30, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(30, 30, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(30, 30, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(40, 40, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(40, 40, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(40, 40, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(40, 40, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(50, 50, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(50, 50, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(50, 50, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(50, 50, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(60, 60, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(60, 60, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(60, 60, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(60, 60, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(70, 70, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(70, 70, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(70, 70, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(70, 70, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(80, 80, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(80, 80, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(80, 80, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(80, 80, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(90, 90, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(90, 90, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(90, 90, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(90, 90, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(100, 100, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(100, 100, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(100, 100, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(100, 100, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(110, 110, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(110, 110, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(110, 110, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(110, 110, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(120, 120, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(120, 120, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(120, 120, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(120, 120, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(130, 130, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(130, 130, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(130, 130, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(130, 130, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(140, 140, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(140, 140, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(140, 140, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(140, 140, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(150, 150, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(150, 150, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(150, 150, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(150, 150, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(160, 160, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(160, 160, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(160, 160, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(160, 160, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(170, 170, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(170, 170, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(170, 170, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(170, 170, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(180, 180, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(180, 180, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(180, 180, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(180, 180, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant1()
+    plant1(190, 190, 1, TILE_Y2, TILE_Y1, -1)
+    plant1(190, 190, 1, TILE_Y2, TILE_Y1, -1)
+    TakeMagplant2()
+    plant2(190, 190, 1, TILE_Y2, TILE_Y1, -1)
+    plant2(190, 190, 1, TILE_Y2, TILE_Y1, -1)
+end
+
+function uws()
+   if autoUWS == 1 then
+      SendPacket(2, "action|dialog_return\ndialog_name|ultraworldspray")
+      Sleep(4000)
+   else if autoUWS == 0 then
+      Sleep(delaygrow)
+end
+end
+end
+
+
+local function overlayText(text)
+    var = {}
+    var[0] = "OnTextOverlay"
+    var[1] = text
+    SendVariantList(var)
+end
+
+local function logText(text)
+    packet = {}
+    packet[0] = "OnConsoleMessage"
+    packet[1] = "`b[`#@4Rab`b]`6 ".. text
+    SendVariantList(packet)
+end
+
+local function warnText(text)
+    text = text
+    packet = {}
+    packet[0] = "OnAddNotification"
+    packet[1] = "interface/atomic_button.rttex"
+    packet[2] = text
+    packet[3] = "audio/hub_open.wav"
+    packet[4] = 0
+    SendVariantList(packet)
+    return true
+end
+
+
+    while true do
+ if CONFIGURATION.WORLD == "normal" then
+    harvest()
+    Sleep(200)
+    harvest()
+    Sleep(1500)
+    plantnormal()
+    Sleep(1000)
+    uws()
+ elseif CONFIGURATION.WORLD == "island" then
+    harvest()
+    Sleep(200)
+    harvest()
+    Sleep(500)
+    plantisland()
+    Sleep(1000)
+    uws()
+ end
+end
+WRONG PASSWORD!

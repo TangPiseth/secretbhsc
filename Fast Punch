@@ -1,0 +1,36 @@
+local NetID
+
+function WrenchHandler(type, packet)
+	if packet:find("action|wrench") then
+        NetID = packet:match("action|wrench\n|netid|(%d+)")
+		return true
+	end
+end
+
+
+RunThread(function()
+    while true do
+        for _,player in pairs(GetPlayers()) do
+            if player.netid == tonumber(NetID) then
+                local pposx = GetLocal().pos_x
+                local pposy = GetLocal().pos_y
+                local px2 = pposx / 32
+                local py2 = pposy / 32
+                local packet2 = {
+                    type = 0,
+                    flags = 2610,
+                    float1 = 0.00,
+                    pos_x = pposx,
+                    pos_y = pposy,
+                    int_x = player.pos_x/32,
+                    int_y = player.pos_y/32
+                }
+                SendPacketRaw(packet2)
+                Sleep(50)
+            end
+        end
+    end
+end)
+
+
+AddCallback("Wrench / NetID Handler", "OnPacket", WrenchHandler)

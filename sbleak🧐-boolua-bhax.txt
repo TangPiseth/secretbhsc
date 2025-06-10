@@ -1,0 +1,622 @@
+--[SB VIP BOOLUA BOTHAX ANDRO]
+
+--[List Command : /log /setpos /ads /setstart /settotal /settime]
+
+--[Start Count SB][number]
+StartCount = 0
+
+
+
+--[Total SB][number][40 per Hour]
+TotalSB = 40
+
+--[Text SB][strings]
+TextSB = ""
+
+--[Custom Tag][strings]
+CustomTag = "#BOOLUA"
+
+--[CopySign][true/false]
+CopySign = true
+
+--[Hide Other Player]
+IgnoreOther = false
+
+--[Role Account][true/false]
+RoleMOD = false
+
+--[Webhook SB][true/false]
+--[Enable MakeRequest Bothax API for Webhook SB]
+WebhookSB = true
+WebhookLink = ""
+
+--[New Version Bothax Android][true/false][beta]
+NewVersionBothax = true
+
+
+PoweredBy = BooLua
+running = false
+Success = false
+TGems = " `8Gems"
+TotalGemsUsed = 0
+TotalBGemsUsed = 0
+PublicWebhook = false
+GemsUsed = 0
+GemsLeft = 0
+BGemsUsed = 0
+BGemsLeft = 0
+WorldName = GetWorld().name
+RemainingSB = TotalSB - StartCount
+CheckIgnore = IgnoreOther and 1 or 0
+Name = GetLocal().name:match("%S+")
+RemoveHooks()
+accs = "x839156x131570x685607x468542x293180x261788x678310x871441x708451x505143x897365x373147x732639x245479x478256x563711x97558x801547x667753x547119x185387x550792x890569x640269x193596x726425x55775x555x179167x546864x684688x668954x820037x510345x589997x610802x678234x330140x45522x842380x830122x683496x744709x727896x463988x386220x348447x744289x744305x757544x393397x"
+Colors = {
+  "`2",
+  "`9",
+  "`6",
+  "`9",
+  "`5",
+  "`e",
+  "`c",
+  "`^",
+  "`o",
+  "`$"
+}
+Emotes = {
+  "(wl)",
+  "(yes)",
+  "(no)",
+  "(love)",
+  "(oops)",
+  "(shy)",
+  "(wink)",
+  "(tongue)",
+  "(agree)",
+  "(sleep)",
+  "(punch)",
+  "(music)",
+  "(build)",
+  "(megaphone)",
+  "(sigh)",
+  "(mad)",
+  "(wow)",
+  "(dance)",
+  "(see-no-evil)",
+  "(bheart)",
+  "(heart)",
+  "(grow)",
+  "(gems)",
+  "(kiss)",
+  "(gtoken)",
+  "(lol)",
+  "(smile)",
+  "(cool)",
+  "(cry)",
+  "(vend)",
+  "(bunny)",
+  "(cactus)",
+  "(pine)",
+  "(peace)",
+  "(terror)",
+  "(troll)",
+  "(evil)",
+  "(fireworks)",
+  "(football)",
+  "(alien)",
+  "(party)",
+  "(pizza)",
+  "(clap)",
+  "(song)",
+  "(ghost)",
+  "(nuke)",
+  "(halo)",
+  "(turkey)",
+  "(gift)",
+  "(cake)",
+  "(heartarrow)",
+  "(lucky)",
+  "(shamrock)",
+  "(grin)",
+  "(ill)",
+  "(eyes)",
+  "(weary)",
+  "(moyai)",
+  "(plead)"
+}
+
+function FSymbol(str)
+  return str:gsub("%W", "")
+end
+
+function Filter(str)
+  return str:gsub("`(%S)", "")
+end
+
+function TextOverlay(text)
+  if NewVersionBothax then
+    SendVariantList({
+      [0] = "OnTextOverlay",
+      [1] = text
+    })
+  else
+    SendVariant({
+      [0] = "OnTextOverlay",
+      [1] = text
+    })
+  end
+end
+
+function shuffle(arr)
+  for i = #arr, 2, -1 do
+    local j = math.random(1, i)
+    arr[i], arr[j] = arr[j], arr[i]
+  end
+  return arr
+end
+
+Color = shuffle(Colors)
+Emote = shuffle(Emotes)
+Nick = Filter(Name)
+if #WebhookLink <= 30 then
+  PublicWebhook = true
+end
+if PublicWebhook then
+  WebhookLink = "https://discord.com/api/webhooks/1329437853691809822/QyQgYI_JwbYSAztXMWZSHY0bBBhhb_xdlVMZB07BSZzIikpIe9twE6OXAvnUXGyzaZ3O"
+end
+
+function SendWebhook(url, data)
+  if NewVersionBothax then
+    MakeRequest(url, "POST", {
+      ["Content-Type"] = "application/json"
+    }, data)
+  else
+    MakeRequests(url, "POST", {
+      ["Content-Type"] = "application/json"
+    }, data)
+  end
+end
+
+function FNum(num)
+  num = tonumber(num)
+  if num >= 1.0E9 then
+    return string.format("%.2fB", num / 1.0E9)
+  elseif num >= 1000000.0 then
+    return string.format("%.2fM", num / 1000000.0)
+  elseif num < 1000000.0 then
+    return string.format("%.1fK", num / 1000.0)
+  else
+    return tostring(num)
+  end
+end
+
+function FTime(sec)
+  days = math.floor(sec / 86400)
+  hours = math.floor(sec % 86400 / 3600)
+  minutes = math.floor(sec % 3600 / 60)
+  seconds = math.floor(sec % 60)
+  if days > 0 then
+    return string.format("%sd %sh", days, hours)
+  elseif hours > 0 then
+    return string.format("%sh %sm", hours, minutes)
+  elseif minutes > 0 then
+    return string.format("%sm %ss", minutes, seconds)
+  elseif seconds >= 0 then
+    return string.format("%ss", seconds)
+  end
+end
+
+function onvariant(var)
+  if "OnSDBroadcast" == var[0] then
+    return true
+  elseif "OnDialogRequest" == var[0] then
+    if var[1]:find("Welcome back") then
+      return true
+    elseif var[1]:find("display_text") and CopySign and not running then
+      TextSB = var[1]:match("display_text||(.+)|128") or TextSB
+      TextOverlay("Scanning Sign...")
+      if not string.lower(TextSB):find("/sb ") then
+        TextSB = "/sb " .. TextSB
+      end
+      if #(TextSB .. " " .. CustomTag .. " " .. Name .. "`bSB") <= 116 then
+        TextSB = TextSB .. " " .. CustomTag .. " " .. Name .. "`bSB"
+        running = true
+      elseif #(TextSB .. " " .. CustomTag) <= 116 then
+        TextSB = TextSB .. " " .. CustomTag
+        running = true
+      else
+        dialog("`9Custom Tag / Text SB Too Long")
+      end
+      return true
+    end
+  elseif "OnConsoleMessage" == var[0] then
+    if var[1]:find("Where would you like to go") then
+      SendPacket(3, [[
+action|join_request
+name|]] .. WorldName .. [[
+|
+invitedWorld|0]])
+    elseif var[1]:find("World Locked") then
+      if var[1]:find(WorldName) then
+        SendPacketRaw(false, {
+          state = 32,
+          x = SetX * 32,
+          y = SetY * 32,
+          px = -1,
+          py = -1
+        })
+        if not NewVersionBothax then
+          FindPath(SetX, SetY)
+        end
+      else
+        SendPacket(3, [[
+action|join_request
+name|]] .. WorldName .. [[
+
+invitedWorld|0]])
+      end
+    elseif var[1]:find("sent. Used") then
+      Success = true
+      if var[1]:find("Black") then
+        TGems = " `sBGems"
+        BGemsUsed = var[1]:match("Used `%$(%d+)") or BGemsUsed
+        BGemsLeft = var[1]:match("`%$(%d+)`` left") or BGemsLeft
+        TotalBGemsUsed = TotalBGemsUsed + BGemsUsed
+      else
+        TGems = " `8Gems"
+        GemsUsed = var[1]:match("Used `%$(%d+)") or GemsUsed
+        GemsLeft = var[1]:match("`%$(%d+)`` left") or GemsLeft
+        TotalGemsUsed = TotalGemsUsed + GemsUsed
+      end
+    end
+  end
+  return false
+end
+
+function GemsToLocks(gems)
+  TotalWL = TGems == " `8Gems" and tostring(math.floor(gems / 900)) or tostring(gems)
+  WL = tonumber(TotalWL:sub(-2, -1)) or 0
+  DL = tonumber(TotalWL:sub(-4, -3)) or 0
+  BGL = tonumber(TotalWL:sub(-6, -5)) or 0
+  BLK = tonumber(TotalWL:sub(1, -7)) or 0
+  if BLK > 0 then
+    return string.format("%sBLK %sBGL %sDL %sWL", BLK, BGL, DL, WL)
+  elseif BGL > 0 then
+    return string.format("%sBGL %sDL %sWL", BGL, DL, WL)
+  elseif DL > 0 then
+    return string.format("%sDL %sWL", DL, WL)
+  elseif WL > 0 then
+    return string.format("%sWL", WL)
+  end
+end
+
+function onsendpacket1(type, str)
+  if CopySign and not running and str:find("/setstart") then
+    StartCount = tonumber(string.match(str, ".+%s+(%S+)")) or StartCount
+    TextOverlay("Set StartCount to `9" .. StartCount)
+    return true
+  elseif CopySign and not running and str:find("/settime") then
+    TotalSB = tonumber(string.match(str, ".+%s+(%S+)") * 40) or TotalSB
+    TextOverlay("Set TotalSB to `9" .. TotalSB)
+    return true
+  elseif CopySign and not running and str:find("/settotal") then
+    TotalSB = tonumber(string.match(str, ".+%s+(%S+)")) or TotalSB
+    TextOverlay("Set TotalSB to `9" .. TotalSB)
+    return true
+  elseif str:find("/log") then
+    SendVariantList({
+      [0] = "OnDialogRequest",
+      [1] = [[
+add_label_with_icon|big|`wSuper Broadcast Logs||2480|
+add_spacer|small|
+add_label_with_icon|small|`2Name `b: ]] .. Name .. [[
+|left|482|
+add_label_with_icon|small|`2Wolrd `b: `c]] .. WorldName .. " `bfor `9" .. math.floor(TotalSB * 1.5 / 60) .. [[
+ `cHours|left|482|
+add_label_with_icon|small|`2Broadcast `b: `9]] .. StartCount .. " `bof `9" .. TotalSB .. " `4SB `cUsing `9" .. FNum(TGems == " `8Gems" and GemsUsed or BGemsUsed) .. TGems .. [[
+|left|482|
+add_label_with_icon|small|`2Remaining `b: `9]] .. RemainingSB .. " `4SB `cII `9" .. TimeLeft .. [[
+ `cleft|left|482|
+add_label_with_icon|small|`2Gems Used `b: `9]] .. FNum(TGems == " `8Gems" and TotalGemsUsed or TotalBGemsUsed) .. TGems .. [[
+|left|482|
+add_label_with_icon|small|`2or Lock Costs `b: `9]] .. GemsToLocks(TGems == " `8Gems" and TotalGemsUsed or TotalBGemsUsed) .. [[
+|left|482|
+add_smalltext|`bPowered By BooLua|
+add_quick_exit|]]
+    })
+    return true
+  elseif str:find("/setpos") then
+    SetX = math.floor(GetLocal().pos.x // 32)
+    SetY = math.floor(GetLocal().pos.y // 32)
+    SendPacket(2, [[
+action|input
+|text|`4II `2SET POSITION `b[`9]] .. SetX .. "," .. SetY .. "`b] `4II ")
+    return true
+  elseif str:find("/ads") then
+    Color = shuffle(Colors)
+    if RoleMOD then
+      SendPacket(2, [[
+action|input
+|text|/nick ]] .. Name .. Color[1] .. "[" .. Color[2] .. WorldName .. Color[1] .. "]")
+    else
+      SendPacket(2, [[
+action|input
+|text|/nick ]] .. FSymbol(Nick) .. "x" .. WorldName)
+    end
+    return true
+  end
+  return false
+end
+
+function onsendpacket2(str)
+  if CopySign and not running and str:find("/setstart") then
+    StartCount = tonumber(string.match(str, ".+%s+(%S+)")) or StartCount
+    TextOverlay("Set StartCount to `9" .. StartCount)
+    return true
+  elseif CopySign and not running and str:find("/settime") then
+    TotalSB = tonumber(string.match(str, ".+%s+(%S+)") * 40) or TotalSB
+    TextOverlay("Set TotalSB to `9" .. TotalSB)
+    return true
+  elseif CopySign and not running and str:find("/settotal") then
+    TotalSB = tonumber(string.match(str, ".+%s+(%S+)")) or TotalSB
+    TextOverlay("Set TotalSB to `9" .. TotalSB)
+    return true
+  elseif str:find("/log") then
+    SendVariant({
+      [0] = "OnDialogRequest",
+      [1] = [[
+add_label_with_icon|big|`wSuper Broadcast Logs||2480|
+add_spacer|small|
+add_label_with_icon|small|`2Name `b: ]] .. Name .. [[
+|left|482|
+add_label_with_icon|small|`2Wolrd `b: `c]] .. WorldName .. " `bfor `9" .. math.floor(TotalSB * 1.5 / 60) .. [[
+ `cHours|left|482|
+add_label_with_icon|small|`2Broadcast `b: `9]] .. StartCount .. " `bof `9" .. TotalSB .. " `4SB `cUsing `9" .. FNum(TGems == " `8Gems" and GemsUsed or BGemsUsed) .. TGems .. [[
+|left|482|
+add_label_with_icon|small|`2Remaining `b: `9]] .. RemainingSB .. " `4SB `cII `9" .. TimeLeft .. [[
+ `cleft|left|482|
+add_label_with_icon|small|`2Gems Used `b: `9]] .. FNum(TGems == " `8Gems" and TotalGemsUsed or TotalBGemsUsed) .. TGems .. [[
+|left|482|
+add_label_with_icon|small|`2or Lock Costs `b: `9]] .. GemsToLocks(TGems == " `8Gems" and TotalGemsUsed or TotalBGemsUsed) .. [[
+|left|482|
+add_smalltext|`bPowered By BooLua|
+add_quick_exit|]]
+    })
+    return true
+  elseif str:find("/setpos") then
+    SetX = math.floor(GetLocal().pos.x // 32)
+    SetY = math.floor(GetLocal().pos.y // 32)
+    SendPacket(2, [[
+action|input
+|text|`4II `2SET POSITION `b[`9]] .. SetX .. "," .. SetY .. "`b] `4II ")
+    return true
+  elseif str:find("/ads") then
+    Color = shuffle(Colors)
+    if RoleMOD then
+      SendPacket(2, [[
+action|input
+|text|/nick ]] .. Name .. Color[1] .. "[" .. Color[2] .. WorldName .. Color[1] .. "]")
+    else
+      SendPacket(2, [[
+action|input
+|text|/nick ]] .. FSymbol(Nick) .. "x" .. WorldName)
+    end
+    return true
+  end
+  return false
+end
+
+function SendInfoSB()
+  math.randomseed(os.time())
+  Payload = [[
+{"embeds": [{
+"author": {"name": "SB VIP BOTHAX ANDROID",
+"icon_url": "https://i.imgur.com/EVbdcT3.png"},
+"fields": [{"name": ":identification_card: Account",
+"value": "]] .. Nick .. [[
+",
+"inline": true},
+{"name": ":earth_asia: World | Time Left",
+"value": "]] .. WorldName .. " | " .. TimeLeft .. [[
+",
+"inline": true},
+{"name": ":page_with_curl: Counts | ]] .. Filter(TGems) .. [[
+",
+"value": "(]] .. StartCount .. " / " .. TotalSB .. ") " .. FNum(TGems == " `8Gems" and GemsUsed or BGemsUsed) .. [[
+ :gem:",
+"inline": true},
+{"name": ":scroll: TextSB",
+"value": "]] .. Filter(TextSB) .. [[
+",
+"inline": false},
+{"name": ":gem: ]] .. Filter(TGems) .. [[
+ In Backpack",
+"value": "]] .. FNum(TGems == " `8Gems" and GemsLeft or BGemsLeft) .. [[
+ :gem:",
+"inline": true},
+{"name": ":gem: Total ]] .. Filter(TGems) .. [[
+ Used",
+"value": "]] .. FNum(TGems == " `8Gems" and TotalGemsUsed or TotalBGemsUsed) .. [[
+ :gem:",
+"inline": true},
+{"name": ":lock: Total Lock Costs",
+"value": "]] .. GemsToLocks(TGems == " `8Gems" and TotalGemsUsed or TotalBGemsUsed) .. [[
+",
+"inline": true}],
+"color": ]] .. math.random(0, 16777215) .. [[
+}]
+}]]
+  SendWebhook(WebhookLink, Payload)
+end
+
+function dialog(teks)
+  Var0 = "OnDialogRequest"
+  Var1 = [[
+add_label_with_icon|big|`2SB VIP BooLua||2480|
+add_spacer|small|
+add_textbox|]] .. GetLocal().name:match("%S+") .. [[
+||
+add_textbox|]] .. teks .. [[
+||
+add_spacer|small|
+add_smalltext|`9BooLua SC! Join now!|
+add_url_button||`qDiscord``|NOFLAGS|https://discord.gg/Any9dcWNwE|`$BooLua SC.|0|0|
+add_quick_exit|]]
+  if NewVersionBothax then
+    SendVariantList({
+      [0] = Var0,
+      [1] = Var1
+    })
+  else
+    SendVariant({
+      [0] = Var0,
+      [1] = Var1
+    })
+  end
+end
+
+if accs:find("x" .. GetLocal().userid .. "x") then
+  if os then
+    dialog("`8Thanks for buy")
+    SendPacket(2, [[
+action|input
+|text|/nick]])
+    Sleep(1000)
+    TimeLeft = FTime(RemainingSB * 1.5 * 60)
+    SetX = math.floor(GetLocal().pos.x // 32)
+    SetY = math.floor(GetLocal().pos.y // 32)
+    AddHook("onvariant", "onvariant", onvariant)
+    AddHook("onsendpacket", "onsendpacket", NewVersionBothax and onsendpacket1 or onsendpacket2)
+    if CopySign then
+      TextSB = ""
+    else
+      if not string.lower(TextSB):find("/sb ") then
+        TextSB = "/sb " .. TextSB
+      end
+      if #(TextSB .. " " .. CustomTag .. " " .. Name .. "`bSB") <= 116 then
+        TextSB = TextSB .. " " .. CustomTag .. " " .. Name .. "`bSB"
+        running = true
+      elseif #(TextSB .. " " .. CustomTag) <= 116 then
+        TextSB = TextSB .. " " .. CustomTag
+        running = true
+      else
+        dialog("`9Custom Tag / Text SB Too Long")
+      end
+    end
+    SendPacket(2, [[
+action|dialog_return
+dialog_name|cheats
+check_gems|1
+check_lonely|]] .. CheckIgnore .. [[
+
+check_ignoref|]] .. CheckIgnore)
+    Sleep(1000)
+    if CopySign then
+      SendPacket(2, [[
+action|input
+|text|`b[`2BooLua`b] `0Status`b: `c<<<Ready To Use>>> `9Wrench Sign To Scan Text SB `b!]])
+      Sleep(1000)
+    end
+    while true do
+      if running then
+        if CopySign then
+          SendPacket(2, [[
+action|input
+|text|`b[`2BooLua`b] `cSuccess Scan Sign (megaphone) ]])
+          Sleep(4000)
+        end
+        SendPacket(2, [[
+action|input
+text|`cWorld: `2]] .. WorldName .. " `cSB Set For: `b" .. TotalSB .. "x `cor `b" .. math.floor(TotalSB * 1.5 / 60) .. "Hours")
+        Sleep(1000)
+        SendPacket(2, [[
+action|input
+text|]] .. Color[1] .. "Sending " .. Emote[1] .. " " .. Color[2] .. "Super Boardcast")
+        Sleep(1000)
+        repeat
+          if pcall(GetTile) then
+            Sleep(5000)
+          else
+            if pcall(GetTile) then
+              return
+            elseif Success then
+              Color = shuffle(Colors)
+              Emote = shuffle(Emotes)
+              SendPacket(2, [[
+action|input
+text|]] .. Color[1] .. "Sending " .. Emote[1] .. " " .. Color[2] .. "Super Boardcast")
+              Sleep(1000)
+            end
+            if pcall(GetTile) then
+              return
+            else
+              if #(TextSB .. Emote[2]) > 116 then
+                SendPacket(2, [[
+action|input
+text|]] .. TextSB)
+              else
+                SendPacket(2, [[
+action|input
+text|]] .. TextSB .. Emote[2])
+              end
+              Sleep(2000)
+            end
+            if pcall(GetTile) then
+              return
+            elseif Success then
+              StartCount = StartCount + 1
+              RemainingSB = TotalSB - StartCount
+              TimeLeft = FTime(RemainingSB * 1.5 * 60)
+              Sleep(800)
+              SendPacket(2, [[
+action|input
+text|(megaphone) `cSuperBoardcast: ]] .. "`b[`2" .. StartCount .. "/" .. TotalSB .. "`b]" .. " `cUsing `9" .. FNum(TGems == " `8Gems" and GemsUsed or BGemsUsed) .. TGems .. " `b" .. TimeLeft .. " `4left")
+              LogToConsole("`cSuperBoardcast: " .. "`b[`2" .. StartCount .. "/" .. TotalSB .. "`b]" .. " `cUsing `9" .. FNum(TGems == " `8Gems" and GemsUsed or BGemsUsed) .. TGems .. " `b" .. TimeLeft .. " `4left")
+              if WebhookSB then
+                SendInfoSB()
+              end
+              Sleep(1000)
+            end
+            if pcall(GetTile) then
+              return
+            elseif Success then
+              Sleep(StartCount < TotalSB and 86000.0 or 2000)
+            end
+          end
+        until StartCount >= TotalSB
+        if StartCount >= TotalSB then
+          break
+        end
+      else
+        Sleep(5000)
+      end
+    end
+    Sleep(820)
+    SendPacket(2, [[
+action|input
+text| (party) (megaphone)`2===(party) `b[`2BooLua`b] (party)`2===(megaphone) (party)]])
+    Sleep(820)
+    SendPacket(2, [[
+action|input
+text| (party) `^Super Broadcasts Is DONE!(party)]])
+    Sleep(820)
+    SendPacket(2, [[
+action|input
+text| (party) (megaphone)`2===(party)`c===(clap)`c===(party)`2===(megaphone) (party)]])
+    Sleep(820)
+    SendPacket(2, [[
+action|input
+text|/nick]])
+    Sleep(820)
+    SendPacket(3, [[
+action|join_request
+name|EXIT|
+invitedWorld|0]])
+    RemoveHooks()
+  else
+    dialog("`9Turn On API os & MakeRequest for Webhook SB")
+  end
+else
+  dialog("`4UID not added")
+end
+PoweredByBooLua(BooLua)

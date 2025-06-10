@@ -1,0 +1,722 @@
+local Admin = 911629
+local FollowTarget = nil
+local GetItemPrice = false
+local LogActions = false
+local LogFilePath = "Logs.txt"
+local LogFile = io.open(LogFilePath, "a")
+local NetID
+local DevNetID
+local WorldName
+local GemsAmount
+local Logs = {}
+local BlacklistedWords = {"fuck","pussy","nigg", "/", "duxii", "Duxii", "DU", "632874", "n1g","vagina","fagg","bitch","cock","dick","penis","memek","kontol","koopa","shit","cunt", "spun"}
+
+local function Punch(x, y)
+    local player = GetLocal()
+    local pkt_punch = {
+      type = 3,
+      int_data = 18,
+      pos_x = player.pos_x,
+      pos_y = player.pos_y,
+      int_x = x,
+      int_y = y,
+    }
+    SendPacketRaw(pkt_punch)
+end
+
+local function Place(x, y, id)
+    local player = GetLocal()
+    local pkt_punch = {
+      type = 3,
+      int_data = id,
+      pos_x = player.pos_x,
+      pos_y = player.pos_y,
+      int_x = x,
+      int_y = y,
+    }
+    SendPacketRaw(pkt_punch)
+end
+
+local function WhereIsCommand(PlayerName)
+    Sleep(950)
+    SendPacket(2, "action|input\n|text|/infoex /" .. PlayerName)
+    Sleep(950)
+    if WorldName then
+        SendPacket(2, "action|input\n|text|`9" .. PlayerName .. " is in " .. WorldName .. "!")
+        WorldName = nil
+    else
+        SendPacket(2, "action|input\n|text|`9" .. PlayerName .. " is not Online!")
+    end
+end
+
+local function WarpTo(PlayerName, User)
+    local OldWorld = GetLocal().world
+    Sleep(950)
+    SendPacket(2, "action|input\n|text|/infoex /" .. PlayerName)
+    Sleep(950)
+    if WorldName == "EXIT" then
+        SendPacket(2, "action|input\n|text|`9The user is in EXIT")
+        WorldName = nil
+    elseif WorldName then
+        SendPacket(2, "action|input\n|text|/warp " .. WorldName)
+        Sleep(1900)
+        SendPacket(2, "action|input\n|text|/pull " .. User)
+        Sleep(950)
+        SendPacket(2, "action|input\n|text|`9Successfully pulled you to the world that " .. PlayerName .. " is in!")
+        Sleep(950)
+        SendPacket(2, "action|input\n|text|/warp " .. OldWorld)
+        WorldName = nil
+    end
+end
+
+local function GemsCommand(PlayerName)
+    Sleep(950)
+    SendPacket(2, "action|input\n|text|/infoex /" .. PlayerName)
+    Sleep(950)
+    SendPacket(2, "action|input\n|text|`9" .. PlayerName .. " has " .. (GemsAmount or "unknown") .. " gems!")
+    GemsAmount = 0
+end
+
+local function GetUserFromMessage(netid)
+    for _, player in pairs(GetPlayers()) do
+        if netid == player.netid then
+            return {
+                name = player.name:gsub("`.",""):gsub(" %b()", ""):gsub("@", ""):gsub("Dr.", ""):gsub("%[MAX%]", ""):gsub("%[BOOST%]", ""):gsub("%[ELITE%]", ""):gsub("%[SUPER%]", ""):gsub("of Legend", ""):gsub("%[PRO MAX%]", ""),
+                pos_x = player.pos_x,
+                pos_y = player.pos_y
+            }
+        end
+    end
+    return nil
+end
+
+local function GetPlayerFromMessage(name)
+    name = name:gsub("!bot%s+", "")
+    for _, player in pairs(GetPlayers()) do
+        if player.name:gsub("`.",""):gsub(" %b()", ""):gsub("@", ""):gsub("Dr.", ""):gsub("%[MAX%]", ""):gsub("%[BOOST%]", ""):gsub("%[ELITE%]", ""):gsub("%[SUPER%]", ""):gsub("of Legend", ""):gsub("%[PRO MAX%]", ""):lower():find(name) then
+            return player.name:gsub("`.",""):gsub(" %b()", ""):gsub("@", ""):gsub("Dr.", ""):gsub("%[MAX%]", ""):gsub("%[BOOST%]", ""):gsub("%[ELITE%]", ""):gsub("%[SUPER%]", ""):gsub("of Legend", ""):gsub("%[PRO MAX%]", "")
+        end
+    end
+    return nil
+end
+
+local function GetNetIDFromMessage(name)
+    name = name:gsub("!freeze%s+", ""):gsub("!kick%s+", ""):gsub("!bot%s+", "")
+    for _, player in pairs(GetPlayers()) do
+        if player.name:gsub("`.",""):gsub(" %b()", ""):gsub("@", ""):gsub("Dr.", ""):gsub("%[MAX%]", ""):gsub("%[BOOST%]", ""):gsub("%[ELITE%]", ""):gsub("%[SUPER%]", ""):gsub("of Legend", ""):gsub("%[PRO MAX%]", ""):lower():find(name) then
+            return player.netid
+        end
+    end
+    return nil
+end
+
+local function GetNameFromNetID(netid)
+    for _, player in pairs(GetPlayers()) do
+        if player.netid == netid then
+            return player.name:gsub("`.",""):gsub("@", ""):gsub("Dr.", ""):gsub("%[MAX%]", ""):gsub("%[BOOST%]", ""):gsub("%[ELITE%]", ""):gsub("%[SUPER%]", ""):gsub("of Legend", ""):gsub("%[PRO MAX%]", "")
+        end
+    end
+    return nil
+end
+
+local function GetUserIDFromMessage(netid)
+    for _, player in pairs(GetPlayers()) do
+        if netid == player.netid then
+            return player.userid
+        end
+    end
+    return nil
+end
+
+local function GotoPlayer(User)
+    Sleep(950)
+    SendPacket(2, "action|input\n|text|/warpto " .. User)
+end
+
+function SetBotPosition(x, y)
+    local player = GetLocal()
+    player.pos_x = x
+    player.pos_y = y
+    SendPacket(2, "action|teleport\nx|" .. x .. "|y|" .. y)
+end
+
+local function FollowPlayerCommand(User)
+    if FollowTarget then
+        SendPacket(2, "action|input\n|text|`9Already following a target. Use !stopfollow first.")
+        return
+    end
+
+    FollowTarget = User
+
+    RunThread(function()
+        while FollowTarget == User do
+            local playerToFollow = GetPlayerToFollow(User)
+            if playerToFollow then
+                EditToggle("modfly", true)
+                SetBotPosition(playerToFollow.pos_x, playerToFollow.pos_y)
+                GetLocal().facing_left = playerToFollow.facing_left
+            end
+            Sleep(100)
+        end
+    end)
+
+    SendPacket(2, "action|input\n|text|`9Now following " .. User .. ".")
+end
+
+local function BotCommand(User)
+    if FollowTarget then
+        SendPacket(2, "action|input\n|text|`9Already mimicking a target. Use !stopbot first.")
+        return
+    end
+
+    FollowTarget = User
+
+    RunThread(function()
+        while FollowTarget == User do
+            local playerToFollow = GetPlayerToFollow(User)
+            if playerToFollow then
+                EditToggle("modfly", true)
+                SetBotPosition(playerToFollow.pos_x, playerToFollow.pos_y)
+                GetLocal().facing_left = playerToFollow.facing_left
+            end
+            Sleep(100)
+        end
+    end)
+
+    SendPacket(2, "action|input\n|text|`9Now mimicking " .. User .. ".")
+end
+
+local function StopFollow(User)
+    if FollowTarget then
+        FollowTarget = nil
+        EditToggle("modfly", false)
+        SendPacket(2, "action|input\n|text|`9Stopped following.")
+    else
+        SendPacket(2, "action|input\n|text|`9I am not following anyone silly..")
+    end
+end
+
+local function StopBot(User)
+    if FollowTarget then
+        FollowTarget = nil
+        EditToggle("modfly", false)
+        SendPacket(2, "action|input\n|text|`9Stopped mimicking.")
+    else
+        SendPacket(2, "action|input\n|text|`9I am not mimicking anyone silly..")
+    end
+end
+
+local function SendCommands(User)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!whereis <player_name> - Shows where the target Player is")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!warpto <player_name> - Warps you to the target Players World")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!gems <player_name> - Shows total gems the Target has")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!followme - Makes the bot follow you")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!sfollow - Stops the bot from following you")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!come - Brings the bot to you (This only works if you message the bot)")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!say - Types whatever you want except for bad words")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!bring - Brings the bot to you (Don't message the bot this, message /come instead)")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!msg <player_name> <message> - Messages the target Player with your own Custom Message")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!howgay - Troll command lol")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!dev - Gives you ability to place / break blocks in Worlds you don't own")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!bot <player_name> - Mimicks target player until stopped")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!stopbot - Stops the bot from mimicking the target player")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!price <item_id> - Shows you the price in World Locks for the Item ID")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!pplayer <player_name> - Pulls the player to your location")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!modinfo - Shows you if there are any Vanished Moderators in your World")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!modfly - Makes the bot fly")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!unmodfly - Makes the bot not fly")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!leave - Makes the bot go vanished and go high up in the sky to not be seen")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!vinvis - Bot will be vanished + invis")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!modfly - Makes the bot fly")
+Sleep(950)
+SendPacket(2, "action|input\n|text|/msg /" .. User .. " `9!ghost - Bot will attempt to do /ghost")
+end
+
+function GetPlayerToFollow(User)
+    for _, player in pairs(GetPlayers()) do
+        local name = player.name:gsub("`.","")
+        if name:find(User) then
+            return player
+        end
+    end
+    return nil
+end
+
+-- Main Bot function
+function MainHandler(varlist, packet)
+	if varlist[0]:find("OnTalkBubble") then
+        local Message = varlist[2]:gsub("`.",""):lower()
+        local UserID = GetUserIDFromMessage(varlist[1])
+
+        if varlist[1] == NetID then
+            if varlist[2]:find("!bot") or varlist[2]:find("/") then
+                SendPacket(2, "action|input\n|text|`4I'm not that stupid bro...")
+            else
+                local MessageToSay = varlist[2]
+                if MessageToSay then
+                    local isBlacklisted = false
+                    for _, word in ipairs(BlacklistedWords) do
+                        if MessageToSay:lower():find(word) then
+                            isBlacklisted = true
+                            break
+                        end
+                    end
+            
+                    if isBlacklisted then
+                        SendPacket(2, "action|input\n|text|`4I'm also not that stupid, just stop.")
+                    else
+                        SendPacket(2, "action|input\n|text|" .. varlist[2])
+                    end
+                end
+            end
+        end
+
+        if varlist[1] ~= GetLocal().netid then
+            if UserID == Admin then
+                if Message:match("!runcommand") then
+                    local MessageToSay = Message:match("!runcommand%s+(.+)")
+                    if MessageToSay then
+                        local isBlacklisted = false
+                        for _, word in ipairs(BlacklistedWords) do
+                            if MessageToSay:lower():find(word) then
+                                isBlacklisted = true
+                                break
+                            end
+                        end
+                
+                        if isBlacklisted then
+                            SendPacket(2, "action|input\n|text|`4I'm not that stupid bro...")
+                        else
+                            SendPacket(2, "action|input\n|text|" .. MessageToSay)
+                        end
+                    else
+                        SendPacket(2, "action|input\n|text|`9Usage: !runcommand <command>")
+                    end
+
+
+                elseif Message:match("!worldban") then
+                    local PlayerName = Message:match("!worldban%s+(.+)")
+                    if PlayerName then
+                        SendPacket(2, "action|input\n|text|/boot " .. PlayerName)
+                    else
+                        SendPacket(2, "action|input\n|text|`9Usage: !worldban <player_name>")
+                    end
+
+                elseif Message:match("!pull") then
+                    local PlayerName = Message:match("!pull%s+(.+)")
+                    if PlayerName then
+                        SendPacket(2, "action|input\n|text|/pull " .. PlayerName)
+                    else
+                        SendPacket(2, "action|input\n|text|`9Usage: !pull <player_name>")
+                    end
+
+                elseif Message:match("!freeze") then
+                    local PlayerName = Message:match("!freeze%s+(.+)")
+                    local PlayerNetID = GetNetIDFromMessage(varlist[2])
+                    if PlayerName and PlayerNetID then
+                        SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. PlayerNetID .. "|\nbuttonClicked|freeze")
+                    else
+                        SendPacket(2, "action|input\n|text|`9Usage: !freeze <player_name>")
+                    end
+
+                elseif Message:match("!startlogging") then
+                    if not LogActions then
+                        SendPacket(2, "action|input\n|text|`9Logging is now `2enabled")
+                        LogActions = true
+                    else
+                        SendPacket(2, "action|input\n|text|`9Logging is now `4disabled")
+                        LogActions = false
+                    end
+
+                elseif Message:match("!kick") then
+                    local PlayerName = Message:match("!kick%s+(.+)")
+                    local PlayerNetID = GetNetIDFromMessage(varlist[2])
+                    if PlayerName and PlayerNetID then
+                        SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. PlayerNetID .. "|\nbuttonClicked|kick")
+                    else
+                        SendPacket(2, "action|input\n|text|`9Usage: !kick <player_name>")
+                    end
+
+                elseif Message:match("!ban") then
+                    local PlayerName = Message:match("!ban%s+(.+)")
+                    if PlayerName then
+                        SendPacket(2, "action|input\n|text|/warn " .. PlayerName .. " `0Warning from `4Admin. `0You've been `4BANNED `0from Growtopia for 365 days")
+                    else
+                        SendPacket(2, "action|input\n|text|`9Usage: !ban <player_name>")
+                    end
+                end
+            end
+
+            if Message:match("!whereis") then
+                local PlayerName = Message:match("!whereis%s+(%S+)")
+                if PlayerName then
+                    RunThread(function()
+                        WhereIsCommand(PlayerName)
+                    end)
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !whereis <player_name>")
+                end
+
+            elseif Message:match("!warpto") then
+                local PlayerName = Message:match("!warpto%s+(%S+)")
+                local User = GetUserFromMessage(varlist[1])
+                if PlayerName and User then
+                    RunThread(function()
+                        WarpTo(PlayerName, User.name)
+                    end)
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !warpto <player_name>")
+                end
+
+            elseif Message:match("!bot") then
+                local PlayerName = Message:match("!bot%s+(%S+)")
+                local PlayerNetID = GetNetIDFromMessage(varlist[2])
+                local User = GetPlayerFromMessage(varlist[2])
+                if PlayerName and User and PlayerNetID then
+                    BotCommand(User)
+                    NetID = PlayerNetID
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !bot <player_name>")
+                end
+
+            elseif Message:match("!stop") then
+                NetID = nil
+                DevNetID = nil
+                StopBot()
+
+            elseif Message:match("!pplayer") then
+                local PlayerName = Message:match("!pplayer%s+(.+)")
+                local PlayerNetID = GetNetIDFromMessage(varlist[2])
+                local User = GetUserFromMessage(varlist[1])
+                if PlayerName and User then
+                    local OriginalPositionX = GetLocal().pos_x
+                    local OriginalPositionY = GetLocal().pos_y
+                    RunThread(function()
+                        SetBotPosition(User.pos_x, User.pos_y)
+                        Sleep(250)
+                        SendPacket(2, "action|input\n|text|/pull " .. PlayerName)
+                        Sleep(250)
+                        SetBotPosition(OriginalPositionX, OriginalPositionY)
+                    end)
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !pplayer <player_name>")
+                end
+
+            elseif Message:match("!ping") then
+                SendPacket(2, "action|input\n|text|My ping is "..tostring(GetPing()))
+
+            elseif Message:match("!modfly") then
+                EditToggle("modfly", true)
+
+            elseif Message:match("!unmodfly") then
+                EditToggle("modfly", false)
+
+            elseif Message:match("!gems") then
+                local PlayerName = Message:match("!gems%s+(%S+)")
+                if PlayerName then
+                    RunThread(function()
+                        GemsCommand(PlayerName)
+                    end)
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !gems <player_name>")
+                end
+
+            elseif Message:match("!cmds") then
+                local User = GetUserFromMessage(varlist[1])
+                if User then
+                    RunThread(function()
+                        SendCommands(User.name)
+                    end)
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !cmds")
+                end
+
+            elseif Message:match("!follow") then
+                local User = GetUserFromMessage(varlist[1])
+                if User then
+                    FollowPlayerCommand(User.name)
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !followme")
+                end
+
+            elseif Message:match("!sfollow") then
+                StopFollow()
+
+            elseif Message:match("!modinfo") then
+                local VanishedMods = {}
+                for _, player in pairs(GetPlayers()) do
+                    local Name = player.name:gsub("`.",""):gsub("@", ""):gsub("Dr.", ""):gsub("%[MAX%]", ""):gsub("%[BOOST%]", ""):gsub("%[ELITE%]", ""):gsub("%[SUPER%]", ""):gsub("of Legend", ""):gsub("%[PRO MAX%]", "")
+                    if Name:match("^%s+%(%d+%)$") then
+                        local PlayerId = Name:match("%((%d+)%)")
+                        table.insert(VanishedMods, PlayerId)
+                    end
+
+                    if Name:match("^%s$") then
+                        table.insert(VanishedMods, math.floor(player.userid))
+                    end
+                end
+
+                if #VanishedMods > 0 then
+                    local ModsList = table.concat(VanishedMods, ", ")
+                    SendPacket(2, "action|input\n|text|Vanished Mods: " .. ModsList)
+                    VanishedMods = {}
+                else
+                    SendPacket(2, "action|input\n|text|No vanished mods found.")
+                end
+
+            elseif Message:match("!say") then
+                local MessageToSay = Message:match("!say%s+(.+)")
+                if MessageToSay then
+                    local isBlacklisted = false
+                    for _, word in ipairs(BlacklistedWords) do
+                        if MessageToSay:lower():find(word) then
+                            isBlacklisted = true
+                            break
+                        end
+                    end
+            
+                    if isBlacklisted then
+                        SendPacket(2, "action|input\n|text|`4I'm not that stupid bro...")
+                    else
+                        SendPacket(2, "action|input\n|text|`9" .. MessageToSay)
+                    end
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !say <message>")
+                end
+
+            elseif Message:match("!price") then
+                local ItemID = Message:match("!price%s+(%d+)")
+                if ItemID then
+                    SendPacket(2, "action|dialog_return\ndialog_name|book_of_knowledge\nbuttonClicked|book_" .. ItemID)
+                    GetItemPrice = true
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !price <itemid>")
+                end
+
+            elseif Message:match("!bring") then
+                local User = varlist[1]
+                if User then
+                    for _, player in pairs(GetPlayers()) do
+                        if User == player.netid then
+                            SetBotPosition(player.pos_x, player.pos_y)
+                            break
+                        end
+                    end
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !bring")
+                end
+
+            elseif Message:match("!msg") then
+                local TargetPlayer, MessageToSay = Message:match("!msg%s+(%S+)%s+(.+)")
+                if TargetPlayer and MessageToSay then
+                    RunThread(function()
+                        SendPacket(2, "action|input\n|text|/msg " .. TargetPlayer .. " " .. MessageToSay)
+                        Sleep(950)
+                        SendPacket(2, "action|input\n|text|`9Sent message to " .. TargetPlayer)
+                    end)
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !msg <player_name> <message>")
+                end
+
+            elseif Message:match("!leave") then
+                RunThread(function()
+                    SendPacket(2, "action|input\n|text|/vinvis")
+                    Sleep(80)
+                    SetBotPosition(1233.75, -2301.25)
+                end)
+
+            elseif Message:match("!vinvis") then
+                SendPacket(2, "action|input\n|text|/vinvis")
+
+            elseif Message:match("!ghost") then
+                SendPacket(2, "action|input\n|text|/ghost")
+
+            elseif Message:match("!howgay") then
+                local RandomPercentage = math.random(0, 100)
+                local User = Message:match("!howgay%s+(%S+)")
+                if User then
+                    SendPacket(2, "action|input\n|text|`9" .. User .. " is " .. RandomPercentage .. "% gay!")
+                else
+                    SendPacket(2, "action|input\n|text|`9Usage: !howgay <player_name>")
+                end
+
+            elseif Message:match("!dev") then
+                DevNetID = tonumber(varlist[1])
+            end
+        end
+
+    elseif varlist[0]:find("OnConsoleMessage") then
+        local ConsoleMessage = varlist[1]:gsub("`.","")
+
+        if ConsoleMessage:find("%[W%]") and not (ConsoleMessage:find("Duxii") or ConsoleMessage:find("!startlogging")) then
+            if LogActions then
+                local PlayerName = ConsoleMessage:match("<(.-)>"):gsub("`.",""):gsub("@", ""):gsub("Dr.", ""):gsub("%[MAX%]", ""):gsub("%[BOOST%]", ""):gsub("%[ELITE%]", ""):gsub("%[SUPER%]", ""):gsub("of Legend", ""):gsub("%[PRO MAX%]", ""):gsub("%s+", "")
+                local PlayerUserID = PlayerName:match("%((%d+)%)")
+                local Text = ConsoleMessage:match(">%s(.*)")
+                local DateTime = os.date("%d/%m %H:%M:%S")
+
+                if PlayerName and Text and PlayerUserID then
+                    PlayerName = PlayerName:gsub("%((%d+)%)", "")
+                    LogFile:write("LOG [Text]: [" .. DateTime .. "]: <" .. PlayerName .. " (ID: " .. PlayerUserID .. ")> " .. Text .. "\n")
+                    LogFile:flush()
+                end
+            end
+
+        elseif ConsoleMessage:find("left") then
+            if LogActions then
+                local PlayerName = ConsoleMessage:match("<(.*)%sleft"):gsub("`.",""):gsub("@", ""):gsub("Dr.", ""):gsub("%[MAX%]", ""):gsub("%[BOOST%]", ""):gsub("%[ELITE%]", ""):gsub("%[SUPER%]", ""):gsub("of Legend", ""):gsub("%[PRO MAX%]", ""):gsub("%s+", "")
+                local DateTime = os.date("%d/%m %H:%M:%S")
+                LogFile:write("LOG [Left]: [" .. DateTime .. "]: <" .. PlayerName .. "> has left " .. GetLocal().world .. "\n")
+                LogFile:flush()
+            end
+        end
+
+        if ConsoleMessage:find("Online now in ") then
+            WorldName = varlist[1]:match("Online now in (%S+)")
+        end
+
+        if ConsoleMessage:find("DiscordUser") then
+            GemsAmount = varlist[1]:match("Gems: (%d+)")
+        end
+
+        if ConsoleMessage:find("%[MSG%]") and ConsoleMessage:find("!come") then
+            local User = ConsoleMessage:match("%((%S+)%)")
+            if User then
+                SendPacket(2, "action|input\n|text|/warpto " .. User)
+            end
+        end
+
+    elseif varlist[0]:find("OnDialogRequest") then
+        local Dialog = varlist[1]:gsub("`.","")
+        if Dialog:find("Price info:") then
+            if GetItemPrice then
+                ItemPrice = Dialog:match("This item is being traded for (%d+) World Locks each")
+
+                if ItemPrice then
+                    SendPacket(2, "action|input\n|text|Item costs ~" .. ItemPrice .. " World Locks each.")
+                else
+                    SendPacket(2, "action|input\n|text|Item has no price set yet...")
+                end
+                GetItemPrice = false
+                return true
+            end
+        end
+
+    elseif varlist[0]:find("OnSpawn") then
+        if LogActions then
+            local Text = varlist[1]:gsub("`.","")
+            local PlayerName = Text:match("name|([%w_]+)"):gsub(" %b()", ""):gsub("@", ""):gsub("Dr.", ""):gsub("%[MAX%]", ""):gsub("%[BOOST%]", ""):gsub("%[ELITE%]", ""):gsub("%[SUPER%]", ""):gsub("of Legend", ""):gsub("%[PRO MAX%]", "")
+            local PlayerUserID = Text:match("userID|(%d+)")
+            local DateTime = os.date("%d/%m %H:%M:%S")
+
+            LogFile:write("LOG [Entered]: [" .. DateTime .. "]: <" .. PlayerName .. " (ID: " .. PlayerUserID .. ")> has entered " .. GetLocal().world .. "\n")
+            LogFile:flush()
+        end
+    end
+end
+
+function PunchDetector(packet)
+	if packet.netid == NetID then
+		if packet.type == 0 then
+			if packet.int_data == 0 then
+				Punch(packet.int_x, packet.int_y)
+			elseif packet.int_data ~= 0 then
+				Place(packet.int_x, packet.int_y, packet.int_data)
+			end
+
+		elseif packet.type == 8 then
+			if packet.int_data == 8 then
+				Punch(packet.int_x, packet.int_y)
+			end
+
+        elseif packet.type == 3 then
+			Place(packet.int_x, packet.int_y, packet.int_data)
+
+        elseif packet.type == 18 then
+			if packet.int_x == 1 then
+                local packet = {}
+                packet.type = 18 
+                packet.int_x = 1
+                SendPacketRaw(packet)
+            elseif packet.int_x == 2 then
+                local packet = {}
+                packet.type = 18 
+                packet.int_x = 2
+                SendPacketRaw(packet)
+            elseif packet.int_x == 0 then
+                local packet = {}
+                packet.type = 18 
+                packet.int_x = 0
+                SendPacketRaw(packet)
+            end
+		end
+	end
+
+    if packet.netid == DevNetID then
+        if packet.type == 0 then
+			if packet.int_data == 0 then
+				Punch(packet.int_x, packet.int_y)
+			elseif packet.int_data ~= 0 then
+				Place(packet.int_x, packet.int_y, packet.int_data)
+			end
+		elseif packet.type == 8 then
+			if packet.int_data == 8 then
+				Punch(packet.int_x, packet.int_y)
+			end
+        elseif packet.type == 3 then
+			Place(packet.int_x, packet.int_y, packet.int_data)
+        end
+    end
+
+    if packet.type == 14 then
+        if LogActions then
+            if packet.netid == -1 then
+                local PlayerName = GetNameFromNetID(packet.item)
+                local PlayerUserID = PlayerName:match("%((%d+)%)")
+                local ItemName = GetIteminfo(packet.int_data).name
+                local DateTime = os.date("%d/%m %H:%M:%S")
+
+                if PlayerName and PlayerUserID then
+                    LogFile:write("LOG [Dropped]: [" .. DateTime .. "]: <" .. PlayerName .. " (ID: " .. PlayerUserID .. ")> " .. ItemName .. "\n")
+                    LogFile:flush()
+                end
+            else
+                local PlayerName = GetNameFromNetID(packet.netid)
+                local PlayerUserID = PlayerName:match("%((%d+)%)")
+                local ItemName = GetIteminfo(packet.int_data).name
+                local DateTime = os.date("%d/%m %H:%M:%S")
+
+                if PlayerName and PlayerUserID then
+                    LogFile:write("LOG [Pick-up]: [" .. DateTime .. "]: <" .. PlayerName .. " (ID: " .. PlayerUserID .. ")>\n")
+                    LogFile:flush()
+                end
+            end
+        end
+    end
+end
+
+AddCallback("Punch / Place Detector", "OnIncomingRawPacket", PunchDetector)
+AddCallback("Bot Commands Handler", "OnVarlist", MainHandler)
+
+
+

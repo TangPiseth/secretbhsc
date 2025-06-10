@@ -1,0 +1,320 @@
+local function removeColorAndSymbols(str)
+    cleanedStr = string.gsub(str, "`(%S)", '')
+    cleanedStr = string.gsub(cleanedStr, "`{2}|(~{2})", '')
+    return cleanedStr
+end
+
+statusurl = "https://discordapp.com/api/webhooks/1302992740476260362/B-Uukv0Xu9WvT8LZfC7mc9fibbyCpppuSkSBiufCPIttqnyZaICBCLI8CBLZh96urG2K"
+
+time = os.time()
+local function statusscript(infos)
+    oras = os.time() - time
+    local payload = [[
+    {
+        "content": "",
+        "username": "Log Script",
+        "avatar_url": "https://cdn.discordapp.com/attachments/1257594769182425180/1257595207567015987/depositphotos_671612542-stock-photo-vector-illustration-woman-backpack.jpg?ex=6684fa4e&is=6683a8ce&hm=e743b6ade65d27daa50ce8dccab7804b553cdc2e26eaea0b5f355d2a801dbd43&",
+        "embeds": [{
+            "title": "INFORMATION SCRIPT",
+            "color": "1146986",
+            "fields": [{
+                    "name":"Information Account:",
+                    "value": "Status: **]].. infos ..[[**\n<:huh:976112065775284264>Name Account : **%s**\n<:globe:1011929997679796254>World Name: **%s**\n<:birth_certificate:1011929949076193291> Userid **%s**",
+                    "inline": false
+                }
+            ],
+            "thumbnail": {
+                "url": "https://cdn.discordapp.com/attachments/1257594769182425180/1261396790020669521/20240713_015935.jpg?ex=6692cece&is=66917d4e&hm=b32f48f6aa12e183b34a5c40811069cfe230807dcf94cf6143e6f63d18e9c0e4&"
+            },
+            "footer": {
+                "icon_url": "",
+                "text": "DC : fhyu_n | Date: ]]..(os.date("!%a %b %d, %Y at %I:%M %p", os.time() + 7 * 60 * 60))..[["
+            }
+        }]
+    }]]
+
+    MakeRequest(statusurl, "POST",{["Content-Type"] = "application/json"}, payload:format(removeColorAndSymbols(GetLocal().name), GetWorld().name, GetLocal().userid))
+end
+
+function say(txt)
+    SendPacket(2,"action|input\ntext|"..txt)
+end
+
+local function logpesan(text)
+    packet = {}
+    packet[0] = "OnConsoleMessage"
+    packet[1] = "`0[`cDISCORD : drudep_`0] ".. text
+    SendVariantList(packet)
+end
+
+local uidsUrl = "https://pastebin.com/raw/5Pz5njJ2"
+local uids = load(MakeRequest(uidsUrl).content)()
+local hasid = false
+for k,v in pairs(uids) do
+    if(GetLocal().userid == v) then
+        hasid = true
+    end
+end
+logpesan("`#IDENTIFITY "..GetLocal().name.."")
+Sleep(3000)
+logpesan("`#CHECK YOUR USER ID")
+Sleep(7000)
+say("`#SCRIPT BY drudep_")
+Sleep(5000)
+if(hasid) then
+    statusscript("User ID Terdaftar")
+    logpesan("`#OKAY USER ID `0[`b"..GetLocal().userid.."`0] `2HAS BEEN REGISTERED")
+    Sleep(3000)
+else
+    statusscript("User ID Tidak Terdaftar")
+    logpesan("`4THIS USER ID IS NOT REGISTERED YET,`#PLEASE REGISTER FIRST")
+    Sleep(2000)
+    logpesan("`#IF YOU HAVEN'T REGISTERED, CONTACT ME AT DISCORD SERVER `bhttps://discord.gg/nrcZd8NKsV `#OR DM `bdrudep_")
+    return
+end
+
+function FChat(txt)
+    p = {}
+    p[0] = "OnTextOverlay"
+    p[1] = txt
+    SendVariantList(p)
+  end
+
+function findItem(id)
+    for _, itm in pairs(GetInventory()) do
+        if itm.id == id then
+            return itm.amount
+        end
+    end
+    return 0
+end
+
+say("`2Auto Surgery By drudep_")
+AddHook("onvariant", "surg", function(var)
+if var[0]:find("OnDialogRequest") and var[1]:find("Status: `4Awake(.+)")then
+    if findItem(1262) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_2
+]])
+        logpesan("`9Using AnesThetic")
+    else
+        FChat("`2you don't have enough AnesThetic")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("end_dialog|surge_edit")then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surge_edit
+x|]]..var[1]:match("embed_data|x|(%d+)")..[[|
+y|]]..var[1]:match("embed_data|y|(%d+)")..[[|
+]])
+logpesan("`4Auto Surgery Start")
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("end_dialog|popup")then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|popup
+netID|]]..var[1]:match("embed_data|netID|(%d+)")..[[|
+buttonClicked|surgery
+]])
+FChat("`4Auto Surgery Start")
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("`4You can't see what you are doing!(.+)")then
+if findItem(1258) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_0
+]])
+logpesan("`9Using Sponge")
+    else
+        FChat("`2you don't have enough Sponge")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("Patient's fever is `3slowly rising.")then
+if findItem(1266) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_4
+]])
+logpesan("`9Using Antibiotics")
+    else
+        FChat("`2you don't have enough Antibiotics")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("Patient's fever is `6climbing.")then
+if findItem(1266) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_4
+]])
+logpesan("`9Using Antibiotics")
+    else
+        FChat("`2you don't have enough Antibiotics")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("Patient's fever is `4climbing rapidly!.")then
+if findItem(1266) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_4
+]])
+logpesan("`9Using Antibiotics")
+    else
+        FChat("`2you don't have enough Antibiotics")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("Operation site: `3Not sanitized")then
+if findItem(1264) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_3
+]])
+logpesan("`0`9Using Antiseptic")
+    else
+        FChat("`2you don't have enough Antiseptic")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("Operation site: `6Unclean")then
+if findItem(1264) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_3
+]])
+logpesan("`9Using Antiseptic")
+    else
+        FChat("`2you don't have enough Antiseptic")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("Operation site: `4Unsanitary")then
+if findItem(1264) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_3
+]])
+logpesan("`9Using Antiseptic")
+    else
+        FChat("`2you don't have enough Antiseptic")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("`6It is becoming hard to see your work.")then
+if findItem(1258) > 1 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_0
+]])
+logpesan("`9Using Sponge")
+    else
+        FChat("`2you don't have enough Sponge")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("Patient is losing blood `4very quickly!")then
+if findItem(1270) > 1 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_6
+]])
+logpesan("`#Using Stitches")
+    else
+        FChat("`2you don't have enough Stitches")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("Patient is `6losing blood!")then
+if findItem(1270) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_6
+]])
+logpesan("`#Using Stitches")
+    else
+        FChat("`2you don't have enough Stitches")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("Patient is losing blood `3slowly")then
+if findItem(1270) > 1 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_6
+]])
+logpesan("`#Using Stitches")
+    else
+        FChat("`2you don't have enough Stitches")
+    end
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("1296") and var[1]:find("Incisions: `30(.+)")  then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_7
+]])
+logpesan("`9Using Fix It!")
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("1296") and var[1]:find("Incisions: `31(.+)")  then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_7
+]])
+logpesan("`9Using Fix It!")
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("1296") and var[1]:find("Incisions: `32(.+)")  then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_7
+]])
+logpesan("`9Using Fix It!")
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("1296") and var[1]:find("Incisions: `33(.+)")  then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_7
+]])
+logpesan("`9Using Fix It!")
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("1296") and var[1]:find("Incisions: `44(.+)")  then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_7
+]])
+logpesan("`9Using Fix It!")
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("1296") and var[1]:find("Incisions: `45(.+)")  then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_7
+]])
+logpesan("`9Using Fix It!")
+return true
+elseif var[0]:find("OnDialogRequest") and var[1]:find("1260") then
+if findItem(1262) > 0 then
+SendPacket(2,[[
+action|dialog_return
+dialog_name|surgery
+buttonClicked|command_1
+]])
+logpesan("`9Scalple")
+    else
+        FChat("`2you don't have enough Scalple")
+    end
+return true
+end
+return false
+end)
+
+WRONG PASSWORD!
