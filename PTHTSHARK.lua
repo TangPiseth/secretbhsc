@@ -4,13 +4,12 @@ amtseed = 17000 	-- Maximum Tree (Usage; UWS)
 delayPlant = 40 	-- Planting Delay
 delayHarvest = 100 	-- Harvesting Delay
 delayUWS = 4000 	-- Delay from use uws to harvest
-magplantX = 1		-- First Magplant X 
-magplantY = 175 	-- First Magplant Y
-delayRecon = 100        -- Delay reconnect
-autoSpray = true -- true or false (Usage; Automatically use Ultra World Spray after Planting)
-autoPlant = true -- true or false (Usage; Automatically Plants)
-autoHarvest = true -- true or false (Usage; Automatically Harvests)
-autoGhost = true -- true or false (Usage; Automatically Ghost)
+delayRecon = 100    -- Delay reconnect
+autoSpray = true    -- true or false (Usage; Automatically use Ultra World Spray after Planting)
+autoPlant = true    -- true or false (Usage; Automatically Plants)
+autoHarvest = true  -- true or false (Usage; Automatically Harvests)
+autoGhost = true    -- true or false (Usage; Automatically Ghost)
+magplantBgID = 14   -- Background ID for cave background
 
 worldName = "" -- Don't Touch --
 nowEnable = true -- Don't Touch --
@@ -18,9 +17,10 @@ isEnable = false -- Don't Touch --
 ghostState = false -- Don't Touch --
 wreckWrench = true -- Don't Touch --
 changeRemote = false -- Don't Touch --
-magplantX = magplantX - 1 -- Don't Touch --
 player = GetLocal().name -- Don't Touch --
 currentWorld = GetWorld().name -- Don't Touch --
+usedMagplants = {} -- Track used magplants
+firstRun = true -- Flag for first run detection
 
 world = "island"        -- Dont Touch!!!
 if world == "island" then
@@ -186,7 +186,7 @@ end
 --[START WHEN START SCRIPT]-------
 
 for i = 4, 1, -1 do
-SendPacket(2,"action|input\n|text|`6[Premium Script By `b@Rebana`6]")
+SendPacket(2,"action|input\n|text|`6[Premium Script By `b@icShark`6]")
 Sleep(1000)
 end
 
@@ -216,7 +216,7 @@ end
 
 local function countTree()
     if GetWorld() == nil then
-        return
+        return 0
     end
 
     countTrees = 0
@@ -271,14 +271,113 @@ local function cheatSetup()
     end
 end
 
+-- Scan and log tile data for debugging
+local function scanForMagplants()
+    LogToConsole("`9Starting magplant scan...")
+    local magplantCount = 0
+    local matchingBgCount = 0
+    
+    for _, tile in pairs(GetTiles()) do
+        -- Check if tile has a magplant (ID: 5666)
+        if tile.fg == 5666 then
+            magplantCount = magplantCount + 1
+            LogToConsole("`9Found magplant at X:" .. tile.x .. " Y:" .. tile.y .. " with BG:" .. tile.bg)
+            
+            -- Check if it has our target background
+            if tile.bg == magplantBgID then
+                matchingBgCount = matchingBgCount + 1
+                LogToConsole("`2MATCH! Magplant with correct bg at X:" .. tile.x .. " Y:" .. tile.y)
+            end
+        end
+    end
+    
+    LogToConsole("`9Scan complete. Found " .. magplantCount .. " magplants, " .. matchingBgCount .. " with matching bg ID " .. magplantBgID)
+end
+
+-- Find magplant by background ID
+local function findMagplant()
+    if GetWorld() == nil then
+        return nil
+    end
+    
+    -- On first run, scan and log all magplants for debugging
+    if firstRun then
+        scanForMagplants()
+        firstRun = false
+    end
+    
+    -- Look for any magplant that has the specific background
+    for _, tile in pairs(GetTiles()) do
+        -- Check if the tile is a magplant (ID: 5666) and has our target background
+        if tile.fg == 5666 and tile.bg == magplantBgID then
+            -- Check if we've already used this magplant
+            local key = tile.x .. "," .. tile.y
+            if not usedMagplants[key] then
+                LogToConsole("`2Found available magplant at X:" .. tile.x .. " Y:" .. tile.y)
+                return {x = tile.x, y = tile.y}
+            end
+        end
+    end
+    
+    -- If all magplants have been used, reset the used list and try again
+    if next(usedMagplants) ~= nil then
+        LogToConsole("`4All magplants marked as used. Resetting magplant list.")
+        usedMagplants = {}
+        -- Try one more time with reset list
+        for _, tile in pairs(GetTiles()) do
+            if tile.fg == 5666 and tile.bg == magplantBgID then
+                local key = tile.x .. "," .. tile.y
+                LogToConsole("`2Found magplant on second attempt at X:" .. tile.x .. " Y:" .. tile.y)
+                return {x = tile.x, y = tile.y}
+            end
+        end
+    end
+    
+    -- Fallback to any magplant if we can't find one with the specific background
+    LogToConsole("`4No magplant found with background ID " .. magplantBgID .. ". Trying any magplant...")
+    for _, tile in pairs(GetTiles()) do
+        if tile.fg == 5666 then
+            local key = tile.x .. "," .. tile.y
+            if not usedMagplants[key] then
+                LogToConsole("`3Found fallback magplant at X:" .. tile.x .. " Y:" .. tile.y)
+                return {x = tile.x, y = tile.y}
+            end
+        end
+    end
+    
+    LogToConsole("`4No available magplants found at all!")
+    return nil
+end
+
 local function takeMagplant()
     if findItem(5640) == 0 or changeRemote then
-        FindPath(magplantX, magplantY - 1, 60)
-        Sleep(100)
-        wrench(0, 1)
-        Sleep(100)
-        SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|".. magplantX .."|\ny|".. magplantY .."|\nbuttonClicked|getRemote")
-        Sleep(1000)
+        local magplant = findMagplant()
+        if magplant then
+            -- Mark this magplant as used if we're changing remote (indicating it's empty)
+            if changeRemote then
+                local key = magplant.x .. "," .. magplant.y
+                usedMagplants[key] = true
+                LogToConsole("`4Magplant at " .. magplant.x .. ", " .. magplant.y .. " is empty, marking as used.")
+            end
+            
+            -- Path to magplant and get remote
+            LogToConsole("`2Pathing to magplant at X:" .. magplant.x .. " Y:" .. magplant.y)
+            FindPath(magplant.x, magplant.y - 1, 60)
+            Sleep(300)
+            wrench(0, 1)
+            Sleep(300)
+            SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|".. magplant.x .."|\ny|".. magplant.y .."|\nbuttonClicked|getRemote")
+            Sleep(1000)
+        else
+            LogToConsole("`4No available magplants found! Trying default method...")
+            -- Fallback to original magplant coordinates if dynamic detection fails
+            FindPath(1, 174, 60) -- Typical magplant location
+            Sleep(300)
+            wrench(0, 1)
+            Sleep(300)
+            SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|1|\ny|175|\nbuttonClicked|getRemote")
+            Sleep(1000)
+        end
     end
     if wreckWrench then
         cheatSetup()
@@ -518,9 +617,6 @@ dontdropgems()
     end
 
     if changeRemote then
-        for i = 1, 1 do
-            magplantX = magplantX + 1
-        end
         Sleep(100)
         takeMagplant()
         plant()
@@ -551,9 +647,6 @@ plantantimiss()
     end
 
     if changeRemote then
-        for i = 1, 1 do
-            magplantX = magplantX + 1
-        end
         Sleep(100)
         takeMagplant()
         plantantimiss()
